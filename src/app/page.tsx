@@ -37,6 +37,17 @@ export default function Home() {
                 a medida y plataformas modernas con integraciones inteligentes.
               </p>
               <div className="mt-4 flex items-center justify-center sm:justify-start gap-3">
+                                <a
+                                  href="https://wa.me/526647517720"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label="WhatsApp"
+                                  className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 text-white transition-colors shadow-md hover:shadow-lg"
+                                >
+                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 32 32" aria-hidden="true">
+                                    <path d="M16 3C9.373 3 4 8.373 4 15c0 2.385.832 4.584 2.236 6.37L4 29l7.85-2.05A12.94 12.94 0 0 0 16 27c6.627 0 12-5.373 12-12S22.627 3 16 3zm0 22.917c-1.77 0-3.5-.354-5.1-1.05l-.364-.154-4.66 1.217 1.24-4.53-.237-.374A10.93 10.93 0 0 1 5 15c0-6.065 4.935-11 11-11s11 4.935 11 11-4.935 11-11 11zm5.44-7.13c-.297-.149-1.76-.867-2.034-.967-.273-.099-.472-.148-.67.15-.198.297-.767.967-.94 1.166-.173.198-.347.223-.644.075-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.058-.173-.297-.018-.457.13-.605.134-.134.298-.347.447-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.52-.075-.149-.67-1.615-.917-2.215-.242-.58-.487-.5-.67-.51-.173-.007-.372-.009-.57-.009-.198 0-.52.075-.792.372-.273.297-1.04 1.016-1.04 2.48 0 1.463 1.065 2.877 1.213 3.075.149.198 2.1 3.21 5.09 4.374.712.307 1.267.49 1.7.627.714.227 1.364.195 1.877.118.573-.085 1.76-.719 2.01-1.413.248-.694.248-1.288.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                                  </svg>
+                                </a>
                 <a
                   href="https://www.linkedin.com/in/bryan-oliveros-perez-amadevs"
                   target="_blank"
