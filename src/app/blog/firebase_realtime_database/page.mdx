@@ -1,0 +1,521 @@
+import { MyComponent } from '@/mdx-components'
+
+# Guía práctica: Firebase Realtime Database para chat de soporte
+
+Esta guía está pensada para integrarse en **cualquier proyecto** (React, Next.js, Vue, Angular o frontend vanilla) usando Firebase Realtime Database (RTDB) como motor realtime del chat.
+
+El objetivo es simple:
+
+- Chat en tiempo real en RTDB (`conversations`, `messages`, `typing`, `presence`).
+- Reglas de seguridad claras desde el inicio.
+- Código modular y portable.
+- Sin depender de una estructura rígida de repositorio.
+
+---
+
+## 1) Arquitectura recomendada
+
+Separar responsabilidades evita acoplamientos:
+
+- **RTDB**: estado vivo del chat (hilos, mensajes, presencia, typing).
+- **Backend opcional**: auditoría, métricas, integraciones externas.
+- **UI**: listeners en tiempo real y envío de eventos.
+
+> Si usas SQL/NoSQL adicional, úsalo para reportes o historiales largos, no como fuente primaria del runtime realtime.
+
+---
+
+## 2) Modelo de datos RTDB (portable)
+
+```text
+support/
+  staffUids/
+    {uid}: true
+
+  conversations/
+    {conversationId}/
+      participantUid: string
+      status: "open" | "pending" | "closed"
+      createdAt: number
+      updatedAt: number
+      lastMessageAt: number
+      lastMessagePreview: string
+      metadata:
+        channel: "web" | "mobile"
+        userRole: "guest" | "user" | "admin"
+
+  messages/
+    {conversationId}/
+      {messageId}/
+        id: string
+        senderUid: string
+        senderRole: string
+        senderName: string | null
+        message: string
+        messageType: "text"
+        createdAt: string (ISO) | number (timestamp)
+
+  typing/
+    {conversationId}/{uid}/
+      displayName: string
+      updatedAt: number
+
+  presence/
+    {conversationId}/{uid}/
+      displayName: string
+      role: string
+      lastSeenAt: number
+```
+
+---
+
+## 3) Inicialización Firebase en cliente
+
+Ejemplo base (TypeScript/JavaScript):
+
+```ts
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getDatabase } from "firebase/database";
+
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
+
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const rtdb = getDatabase(
+  app,
+  process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL
+);
+```
+
+Recomendaciones:
+
+- No hardcodear credenciales.
+- Si no usas Next.js, reemplaza `process.env.*` por tu sistema de variables de entorno.
+
+---
+
+## 4) Inicialización Firebase Admin (server, opcional pero recomendada)
+
+Usa Admin SDK para verificar tokens y ejecutar operaciones privilegiadas:
+
+```ts
+import { cert, getApps, initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { getDatabase } from "firebase-admin/database";
+
+function getPrivateKey() {
+  return process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+}
+
+function getAdminApp() {
+  if (!getApps().length) {
+    initializeApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+        privateKey: getPrivateKey(),
+      }),
+      databaseURL: process.env.FIREBASE_DATABASE_URL,
+    });
+  }
+  return getApps()[0];
+}
+
+export function getAdminAuth() {
+  return getAuth(getAdminApp());
+}
+
+export function getAdminDb() {
+  return getDatabase(getAdminApp());
+}
+```
+
+---
+
+## 5) Autenticación para RTDB en cliente
+
+RTDB aplica reglas sobre `auth`. Si tu usuario aún no tiene sesión Firebase, puedes usar login anónimo.
+
+```ts
+import { signInAnonymously } from "firebase/auth";
+import { auth } from "./firebase-client";
+
+export async function ensureRtdbAuth() {
+  if (auth.currentUser) return { ok: true };
+
+  try {
+    await signInAnonymously(auth);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+```
+
+> Este login no reemplaza tu auth principal de negocio; solo garantiza identidad para rules de RTDB.
+
+---
+
+## 6) Reglas de seguridad RTDB (base reutilizable)
+
+Archivo `firebase.database.rules.json`:
+
+```json
+{
+  "rules": {
+    "support": {
+      "staffUids": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && root.child('support/staffUids').child(auth.uid).val() === true"
+        }
+      },
+      "conversations": {
+        "$conversationId": {
+          ".read": "auth != null && (data.child('participantUid').val() === auth.uid || root.child('support/staffUids').child(auth.uid).val() === true)",
+          ".write": "auth != null && (newData.child('participantUid').val() === auth.uid || root.child('support/staffUids').child(auth.uid).val() === true)"
+        }
+      },
+      "messages": {
+        "$conversationId": {
+          "$messageId": {
+            ".read": "auth != null && (root.child('support/conversations').child($conversationId).child('participantUid').val() === auth.uid || root.child('support/staffUids').child(auth.uid).val() === true)",
+            ".write": "auth != null && (root.child('support/conversations').child($conversationId).child('participantUid').val() === auth.uid || root.child('support/staffUids').child(auth.uid).val() === true) && newData.child('message').isString() && newData.child('message').val().length <= 4000"
+          }
+        }
+      },
+      "typing": {
+        "$conversationId": {
+          "$uid": {
+            ".read": "auth != null",
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        }
+      },
+      "presence": {
+        "$conversationId": {
+          "$uid": {
+            ".read": "auth != null",
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Despliegue:
+
+```bash
+npx -y firebase-tools@latest deploy --only database
+```
+
+---
+
+## 7) Operaciones core del chat
+
+### 7.1 Crear conversación
+
+```ts
+import { push, ref, set } from "firebase/database";
+import { rtdb } from "./firebase-client";
+
+export async function createConversation(input: {
+  participantUid: string;
+  userRole: "guest" | "user" | "admin";
+  channel?: "web" | "mobile";
+}) {
+  const conversationRef = push(ref(rtdb, "support/conversations"));
+  const conversationId = conversationRef.key;
+  if (!conversationId) throw new Error("No se pudo generar conversationId");
+
+  const now = Date.now();
+  await set(conversationRef, {
+    participantUid: input.participantUid,
+    status: "open",
+    createdAt: now,
+    updatedAt: now,
+    lastMessageAt: now,
+    lastMessagePreview: "",
+    metadata: {
+      userRole: input.userRole,
+      channel: input.channel ?? "web",
+    },
+  });
+
+  return conversationId;
+}
+```
+
+### 7.2 Enviar mensaje
+
+```ts
+import { push, ref, set, update } from "firebase/database";
+import { rtdb } from "./firebase-client";
+
+export async function sendMessage(params: {
+  conversationId: string;
+  senderUid: string;
+  senderRole: string;
+  senderName?: string | null;
+  message: string;
+}) {
+  const msgRef = push(ref(rtdb, `support/messages/${params.conversationId}`));
+  const id = msgRef.key;
+  if (!id) throw new Error("No se pudo enviar el mensaje");
+
+  const row = {
+    id,
+    senderUid: params.senderUid,
+    senderRole: params.senderRole,
+    senderName: params.senderName ?? null,
+    message: params.message,
+    messageType: "text",
+    createdAt: new Date().toISOString(),
+  };
+
+  await set(msgRef, row);
+
+  await update(ref(rtdb, `support/conversations/${params.conversationId}`), {
+    updatedAt: Date.now(),
+    lastMessageAt: Date.now(),
+    lastMessagePreview: params.message.slice(0, 140),
+    status: "open",
+  });
+
+  return row;
+}
+```
+
+---
+
+## 8) Suscripción realtime (mensajes, typing, presencia)
+
+### 8.1 Mensajes
+
+```ts
+import { onValue, ref } from "firebase/database";
+import { rtdb } from "./firebase-client";
+
+export function subscribeMessages(
+  conversationId: string,
+  onData: (rows: Array<any>) => void
+) {
+  const messagesRef = ref(rtdb, `support/messages/${conversationId}`);
+
+  return onValue(messagesRef, (snapshot) => {
+    const value = snapshot.val() ?? {};
+    const rows = Object.values(value).sort(
+      (a: any, b: any) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+    onData(rows);
+  });
+}
+```
+
+### 8.2 Typing
+
+```ts
+import { onDisconnect, ref, remove, set } from "firebase/database";
+import { rtdb } from "./firebase-client";
+
+export async function pushTypingSignal(
+  conversationId: string,
+  uid: string,
+  displayName: string
+) {
+  const typingRef = ref(rtdb, `support/typing/${conversationId}/${uid}`);
+  await set(typingRef, { displayName, updatedAt: Date.now() });
+  onDisconnect(typingRef).remove();
+}
+
+export async function clearTypingSignal(conversationId: string, uid: string) {
+  await remove(ref(rtdb, `support/typing/${conversationId}/${uid}`));
+}
+```
+
+### 8.3 Presencia
+
+```ts
+import { onDisconnect, ref, set } from "firebase/database";
+import { rtdb } from "./firebase-client";
+
+export async function startPresence(params: {
+  conversationId: string;
+  uid: string;
+  displayName: string;
+  role: string;
+}) {
+  const presenceRef = ref(
+    rtdb,
+    `support/presence/${params.conversationId}/${params.uid}`
+  );
+
+  await set(presenceRef, {
+    displayName: params.displayName,
+    role: params.role,
+    lastSeenAt: Date.now(),
+  });
+
+  onDisconnect(presenceRef).remove();
+}
+```
+
+---
+
+## 9) Integración rápida en React (ejemplo mínimo)
+
+```tsx
+import { useEffect, useState } from "react";
+import { ensureRtdbAuth } from "./rtdb-auth";
+import { subscribeMessages, sendMessage } from "./support-chat";
+
+export function SupportChat({ conversationId, currentUser }: any) {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [text, setText] = useState("");
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
+    (async () => {
+      const authResult = await ensureRtdbAuth();
+      if (!authResult.ok) return;
+      unsubscribe = subscribeMessages(conversationId, setMessages);
+    })();
+
+    return () => unsubscribe?.();
+  }, [conversationId]);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!text.trim()) return;
+
+    await sendMessage({
+      conversationId,
+      senderUid: currentUser.uid,
+      senderRole: currentUser.role ?? "user",
+      senderName: currentUser.name ?? null,
+      message: text.trim(),
+    });
+
+    setText("");
+  }
+
+  return (
+    <div>
+      <ul>
+        {messages.map((m) => (
+          <li key={m.id}>
+            <strong>{m.senderName ?? "Usuario"}:</strong> {m.message}
+          </li>
+        ))}
+      </ul>
+
+      <form onSubmit={onSubmit}>
+        <input value={text} onChange={(e) => setText(e.target.value)} />
+        <button type="submit">Enviar</button>
+      </form>
+    </div>
+  );
+}
+```
+
+---
+
+## 10) Backend opcional para auditoría
+
+Si necesitas trazabilidad, guarda eventos en tu backend:
+
+- `support.session.open`
+- `support.message.send`
+- `support.message.read`
+- `support.session.close`
+
+Flujo recomendado:
+
+1. Cliente obtiene ID token Firebase.
+2. Backend verifica token con Admin SDK.
+3. Backend valida permisos (owner/staff).
+4. Backend escribe auditoría en tu motor preferido (Postgres, BigQuery, etc.).
+
+Esto mantiene el chat rápido en RTDB y desacopla reporting.
+
+---
+
+## 11) Variables de entorno sugeridas
+
+### Cliente
+
+- `NEXT_PUBLIC_FIREBASE_API_KEY`
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+- `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+- `NEXT_PUBLIC_FIREBASE_APP_ID`
+- `NEXT_PUBLIC_FIREBASE_DATABASE_URL`
+
+### Servidor (Admin SDK)
+
+- `FIREBASE_ADMIN_PROJECT_ID`
+- `FIREBASE_ADMIN_CLIENT_EMAIL`
+- `FIREBASE_ADMIN_PRIVATE_KEY`
+- `FIREBASE_DATABASE_URL`
+
+---
+
+## 12) Checklist de implementación
+
+1. Crear proyecto Firebase.
+2. Habilitar Realtime Database.
+3. Habilitar Authentication (anónimo u otro método).
+4. Configurar variables de entorno.
+5. Aplicar rules RTDB.
+6. Implementar `createConversation`.
+7. Implementar `sendMessage`.
+8. Implementar listeners (`messages`, `typing`, `presence`).
+9. Probar con dos usuarios simultáneos (usuario y staff).
+10. (Opcional) activar auditoría en backend.
+
+---
+
+## 13) Troubleshooting
+
+### `auth/operation-not-allowed`
+
+Activa el proveedor Anonymous en Firebase Authentication.
+
+### `Permission denied`
+
+- Verifica que exista `auth.currentUser`.
+- Verifica que el `participantUid` coincida con `auth.uid`.
+- Verifica si el usuario staff existe en `support/staffUids/{uid}`.
+
+### No se actualiza presencia/typing
+
+- Asegura `onDisconnect(...).remove()`.
+- Revisa que escribes en la ruta correcta por `conversationId`.
+- Revisa que el cliente no esté bloqueando listeners por estado local.
+
+### Mensajes fuera de orden
+
+Normaliza `createdAt` (todo ISO o todo timestamp) y ordena al renderizar.
+
+---
+
+## 14) Resultado esperado
+
+Con esta estructura:
+
+- El chat funciona en tiempo real sin polling.
+- Las reglas de seguridad son consistentes y auditables.
+- El código se puede mover entre proyectos sin depender de un framework específico.
+- Puedes añadir backend de auditoría sin afectar la experiencia realtime.
+
+
+<MyComponent />
