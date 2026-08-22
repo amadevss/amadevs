@@ -2,13 +2,66 @@ import Image from "next/image";
 import ProjectCard from "../components/ProjectCard";
 
 const projects = [
-  { title: "IBFK", url: "https://www.ibfk.edu.mx/" },
-  { title: "Area 51 PV", url: "https://area-51-pv.vercel.app/" },
-  { title: "Clínica Dental Luz", url: "https://clinicadentalluz.vercel.app/" },
-  { title: "Connectados", url: "https://www.connectados.tech/" },
-  { title: "Eligue", url: "https://www.eligue.com.mx/" },
-  { title: "Nelson Bar", url: "https://www.nelsonbar.com.mx/" },
-  { title: "QommAdd", url: "https://qommadd.com/" },
+  {
+    title: "IBFK",
+    url: "https://www.ibfk.edu.mx/",
+    description: "Landing page del Colegio Bilingüe Frida Kahlo — institución educativa con formación bilingüe.",
+  },
+  {
+    title: "Area 51 PV",
+    url: "https://area-51-pv.vercel.app/",
+    description: "Sistema de punto de venta para un comercio de computadoras en Tijuana.",
+  },
+  {
+    title: "Clínica Dental Luz",
+    url: "https://clinicadentalluz.vercel.app/",
+    description: "Clínica dental con agenda de citas, catálogo de servicios y atención personalizada.",
+  },
+  {
+    title: "Connectados",
+    url: "https://www.connectados.tech/",
+    description: "Plataforma para conectar escuelas y colegios facilitando la comunicación y gestión educativa.",
+  },
+  {
+    title: "Eligue",
+    url: "https://www.eligue.com.mx/",
+    description: "Plataforma deportiva para organizar ligas, torneos y seguimiento de estadísticas.",
+  },
+  {
+    title: "Nelson Bar",
+    url: "https://www.nelsonbar.com.mx/",
+    description: "Bar y restaurante con menú digital, carta de cócteles y reservaciones en línea.",
+  },
+  {
+    title: "QommAdd",
+    url: "https://qommadd.com/",
+    description: "Plataforma de comunidad y publicidad local para negocios y emprendedores.",
+  },
+  {
+    title: "Custos Dei",
+    url: "https://www.custosdei.edu.mx/",
+    description: "Landing page de institución educativa católica con formación académica y valores de fe.",
+  },
+  {
+    title: "Fistor Sport",
+    url: "https://fistorsport.com/",
+    description: "Tienda y plataforma deportiva con equipamiento, ropa y accesorios para atletas.",
+  },
+  {
+    title: "Herramientas IA Lab",
+    url: "https://www.herramientasialab.com/",
+    description: "Directorio curado de herramientas de inteligencia artificial para productividad y desarrollo.",
+  },
+  {
+    title: "CONCAAM",
+    url: "https://www.concaam.org",
+    description: "Confederación de Colegios y Asociaciones de Abogados de México que reúne organizaciones de todo el país para fortalecer el gremio, promover la ética profesional y contribuir a la defensa del Estado de derecho, la justicia y los derechos fundamentales.",
+  },
+  {
+    title: "CEIST",
+    url: "https://www.ceist.edu.mx/",
+    description: "Landing page de institución educativa de nivel superior con programas tecnológicos y científicos.",
+  },
 ];
 
 export default function Home() {
@@ -155,7 +208,7 @@ export default function Home() {
           <h2 className="text-lg font-semibold mb-4 dark:text-white">🔗 Proyectos</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {projects.map((p) => (
-              <ProjectCard key={p.url} title={p.title} url={p.url} />
+              <ProjectCard key={p.url} title={p.title} url={p.url} description={p.description} />
             ))}
           </div>
         </section>
