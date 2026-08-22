@@ -1,0 +1,258 @@
+# View Transitions en Next.js: animaciones nativas entre páginas
+
+La **View Transitions API** es una API nativa del navegador que permite crear transiciones visuales fluidas al navegar entre páginas o al cambiar el estado de la UI — sin librerías externas y con código mínimo.
+
+En esta guía aprenderás a integrarla en un proyecto Next.js (App Router) desde cero.
+
+---
+
+## 1) ¿Qué es la View Transitions API?
+
+Antes de esta API, animar transiciones entre páginas requería interceptar la navegación, mantener dos vistas montadas simultáneamente y coordinar clases CSS. Era complejo y frágil.
+
+La View Transitions API simplifica esto en dos pasos:
+
+1. El navegador captura una **snapshot** de la vista actual.
+2. Aplica la nueva vista y anima entre ambas con CSS.
+
+Todo ocurre de forma sincronizada con el ciclo de renderizado del navegador.
+
+---
+
+## 2) Soporte de navegadores
+
+```text
+Chrome / Edge  ✅  (desde v111)
+Safari         ✅  (desde v18)
+Firefox        ❌  (en desarrollo — usa @supports como fallback)
+```
+
+Siempre verifica soporte antes de activar transiciones críticas para la UX.
+
+---
+
+## 3) Activar transiciones de navegación en Next.js
+
+La forma más sencilla es activar las transiciones de navegación a nivel CSS. Añade esto a tu `globals.css`:
+
+```css
+@view-transition {
+  navigation: auto;
+}
+```
+
+Con solo esta línea, **todos los `<Link>` de Next.js** dispararán un crossfade suave entre páginas en navegadores compatibles. No requiere ningún cambio en JavaScript ni en los componentes.
+
+---
+
+## 4) Personalizar la animación con CSS
+
+La API expone dos pseudo-elementos para controlar la animación:
+
+- `::view-transition-old(root)` — snapshot de la página anterior.
+- `::view-transition-new(root)` — snapshot de la página nueva.
+
+### Ejemplo: fade suave (default mejorado)
+
+```css
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: 200ms ease-out both fade-out;
+}
+
+::view-transition-new(root) {
+  animation: 300ms ease-in both fade-in;
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+```
+
+### Ejemplo: slide horizontal
+
+```css
+::view-transition-old(root) {
+  animation: 250ms ease-in-out both slide-out-left;
+}
+
+::view-transition-new(root) {
+  animation: 250ms ease-in-out both slide-in-right;
+}
+
+@keyframes slide-out-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-40px); opacity: 0; }
+}
+
+@keyframes slide-in-right {
+  from { transform: translateX(40px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+```
+
+---
+
+## 5) Transiciones nombradas (elementos específicos)
+
+La API permite animar elementos individuales entre páginas — por ejemplo, una card que se expande al entrar al detalle.
+
+### Paso 1 — Asigna `view-transition-name` en el elemento de origen
+
+```tsx
+// app/projects/page.tsx
+<div
+  style={{ viewTransitionName: `project-card-${project.id}` }}
+  className="rounded-xl border p-4"
+>
+  <Link href={`/projects/${project.id}`}>{project.title}</Link>
+</div>
+```
+
+### Paso 2 — Usa el mismo nombre en el elemento de destino
+
+```tsx
+// app/projects/[id]/page.tsx
+<div
+  style={{ viewTransitionName: `project-card-${project.id}` }}
+  className="rounded-2xl border p-8"
+>
+  <h1>{project.title}</h1>
+</div>
+```
+
+El navegador interpolará automáticamente la posición, tamaño y bordes del elemento entre ambas páginas. No necesitas CSS adicional.
+
+> **Importante:** Cada `view-transition-name` debe ser **único en el DOM** en un momento dado. Duplicados cancelan la transición del elemento.
+
+---
+
+## 6) Activar transiciones programáticamente
+
+Para casos donde necesitas disparar una transición fuera de la navegación (cambio de tema, filtros, acordeones):
+
+```ts
+// Solo ejecuta si el navegador lo soporta
+function updateWithTransition(callback: () => void) {
+  if (!document.startViewTransition) {
+    callback();
+    return;
+  }
+  document.startViewTransition(callback);
+}
+
+// Uso
+updateWithTransition(() => {
+  setTheme(theme === "dark" ? "light" : "dark");
+});
+```
+
+---
+
+## 7) Integración con el ThemeToggle
+
+Si tu toggle de tema ya existe como componente React, envuelve el setState con `startViewTransition`:
+
+```tsx
+"use client";
+
+export default function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  function toggle() {
+    const next = theme === "dark" ? "light" : "dark";
+
+    if (!document.startViewTransition) {
+      setTheme(next);
+      return;
+    }
+
+    document.startViewTransition(() => setTheme(next));
+  }
+
+  return <button onClick={toggle}>Cambiar tema</button>;
+}
+```
+
+Añade este CSS para una animación circular desde el punto de clic (efecto "ripple"):
+
+```css
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 400ms;
+}
+
+::view-transition-new(root) {
+  clip-path: inset(0 0 100% 0);
+  animation: theme-wipe 400ms ease-in-out both;
+}
+
+@keyframes theme-wipe {
+  from { clip-path: inset(0 0 100% 0); }
+  to   { clip-path: inset(0 0 0% 0); }
+}
+```
+
+---
+
+## 8) TypeScript: tipos para la API
+
+La API aún no está en el `lib.dom.d.ts` estándar de TypeScript. Añade este tipo en un archivo de declaraciones:
+
+```ts
+// types/view-transitions.d.ts
+interface Document {
+  startViewTransition(callback: () => void | Promise<void>): {
+    ready: Promise<void>;
+    finished: Promise<void>;
+    updateCallbackDone: Promise<void>;
+    skipTransition(): void;
+  };
+}
+```
+
+---
+
+## 9) Desactivar en animaciones reducidas
+
+Respeta la preferencia del sistema operativo para usuarios que tienen activado "Reducir movimiento":
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+```
+
+---
+
+## 10) Checklist de implementación
+
+1. Añadir `@view-transition { navigation: auto; }` en `globals.css`.
+2. Personalizar animaciones con `::view-transition-old/new`.
+3. Añadir `view-transition-name` a elementos que se comparten entre páginas.
+4. Envolver cambios de estado con `document.startViewTransition`.
+5. Añadir tipos TypeScript si usas la API programática.
+6. Añadir `prefers-reduced-motion` para accesibilidad.
+
+---
+
+## 11) Resultado esperado
+
+Con esta configuración tendrás:
+
+- Transiciones fluidas en **todos los `<Link>`** sin modificar ningún componente.
+- Animaciones personalizadas entre páginas con CSS puro.
+- Elementos específicos que "vuelan" entre vistas de forma nativa.
+- Compatibilidad progresiva — en Firefox simplemente no hay animación, sin errores.
