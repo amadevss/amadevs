@@ -11,7 +11,7 @@ import {
 } from "motion/react";
 import { useRef, type PointerEvent } from "react";
 import RotatingRoles from "../motion/RotatingRoles";
-import { profile, projects } from "@/lib/content";
+import { profile } from "@/lib/content";
 
 // const stats = [
 //   { emoji: "📅", k: "+8", v: "años" },
