@@ -13,11 +13,11 @@ import { useRef, type PointerEvent } from "react";
 import RotatingRoles from "../motion/RotatingRoles";
 import { profile, projects } from "@/lib/content";
 
-const stats = [
-  { emoji: "📅", k: "+8", v: "años" },
-  { emoji: "🚀", k: `+${projects.length}`, v: "proyectos" },
-  { emoji: "🎤", k: "+12", v: "charlas" },
-];
+// const stats = [
+//   { emoji: "📅", k: "+8", v: "años" },
+//   { emoji: "🚀", k: `+${projects.length}`, v: "proyectos" },
+//   { emoji: "🎤", k: "+12", v: "charlas" },
+// ];
 
 export default function Hero() {
   const ref = useRef<HTMLElement>(null);

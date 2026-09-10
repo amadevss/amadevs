@@ -418,7 +418,7 @@ export type Metric = {
 export const metrics: Metric[] = [
   { value: 8, prefix: "+", label: "Años de experiencia", emoji: "📅" },
   { value: 12, prefix: "+", label: "Conferencias y talleres", emoji: "🎤" },
-  { value: 200, prefix: "+", label: "Docentes capacitados", emoji: "🎓" },
+  { value: 1000, prefix: "+", label: "Docentes capacitados", emoji: "🎓" },
   { value: 0, text: "MX + Intl", label: "Nacional e internacional", emoji: "✈️" },
 ];
 
