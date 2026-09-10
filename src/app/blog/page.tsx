@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Artículos técnicos",
+  description:
+    "Artículos sobre desarrollo web moderno, arquitectura, escalabilidad y herramientas por Bryan Oliveros Pérez (amadevs).",
+};
 
 type Post = {
   slug: string;
@@ -7,20 +14,9 @@ type Post = {
   date: string;
   readTime: number;
   tags: string[];
-  accent: string;
 };
 
 const posts: Post[] = [
-  {
-    slug: "firebase_realtime_database",
-    title: "Firebase Realtime Database para chat de soporte",
-    description:
-      "Guía práctica para construir un chat de soporte en tiempo real con reglas de seguridad, presencia y typing — portable a cualquier framework.",
-    date: "2025-08-01",
-    readTime: 8,
-    tags: ["Firebase", "Realtime", "Chat"],
-    accent: "from-orange-400 to-amber-500",
-  },
   {
     slug: "view_transitions_nextjs",
     title: "View Transitions en Next.js: animaciones nativas entre páginas",
@@ -29,7 +25,15 @@ const posts: Post[] = [
     date: "2025-08-22",
     readTime: 6,
     tags: ["Next.js", "CSS", "Animaciones"],
-    accent: "from-indigo-400 to-purple-500",
+  },
+  {
+    slug: "firebase_realtime_database",
+    title: "Firebase Realtime Database para chat de soporte",
+    description:
+      "Guía práctica para construir un chat de soporte en tiempo real con reglas de seguridad, presencia y typing — portable a cualquier framework.",
+    date: "2025-08-01",
+    readTime: 8,
+    tags: ["Firebase", "Realtime", "Chat"],
   },
 ];
 
@@ -43,51 +47,42 @@ function formatDate(iso: string) {
 
 export default function BlogPage() {
   return (
-    <section className="mx-auto max-w-3xl py-8 sm:py-12 px-4">
-      {/* Header */}
+    <section className="mx-auto max-w-3xl py-12 sm:py-16">
       <header className="mb-10">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-300">
-          Blog
-        </span>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-          Artículos técnicos
-        </h1>
-        <p className="mt-2 text-slate-500 dark:text-slate-400">
-          {posts.length} artículo{posts.length !== 1 ? "s" : ""} sobre desarrollo web, arquitectura y herramientas.
+        <p className="eyebrow">Blog</p>
+        <h1 className="mt-3 font-display text-4xl font-bold tracking-tight">Artículos técnicos</h1>
+        <p className="mt-2 text-muted">
+          {posts.length} artículo{posts.length !== 1 ? "s" : ""} sobre desarrollo web, arquitectura y
+          herramientas.
         </p>
       </header>
 
-      {/* Post list */}
       <ul className="space-y-5">
         {posts.map((post) => (
           <li key={post.slug}>
             <Link
               href={`/blog/${post.slug}`}
-              className="group flex flex-col gap-0 rounded-2xl border border-black/[.06] dark:border-indigo-500/20 bg-white/80 dark:bg-slate-900/70 shadow-sm dark:shadow-indigo-500/10 overflow-hidden hover:shadow-md dark:hover:shadow-indigo-500/20 hover:-translate-y-0.5 transition-all duration-200"
+              className="surface-card group block overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)]"
             >
-              {/* Color accent top bar */}
-              <div className={`h-1 w-full bg-gradient-to-r ${post.accent}`} />
-
+              <div className="h-1 w-full" style={{ background: "var(--grad)" }} />
               <div className="p-5 sm:p-6">
-                {/* Tags */}
-                <div className="flex flex-wrap gap-1.5 mb-3">
+                <div className="mb-3 flex flex-wrap gap-1.5">
                   {post.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[11px] font-medium text-slate-600 dark:text-slate-300"
+                      className="rounded-full border border-border bg-surface-2 px-2.5 py-0.5 text-[11px] font-medium text-subtle"
                     >
                       {tag}
                     </span>
                   ))}
                 </div>
 
-                {/* Title + arrow */}
                 <div className="flex items-start justify-between gap-4">
-                  <h2 className="text-lg font-semibold leading-snug text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                  <h2 className="font-display text-lg font-semibold leading-snug tracking-tight transition-colors group-hover:text-primary-ink">
                     {post.title}
                   </h2>
                   <svg
-                    className="mt-0.5 h-5 w-5 shrink-0 text-slate-300 dark:text-slate-600 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all duration-200"
+                    className="mt-0.5 h-5 w-5 shrink-0 text-subtle transition-all duration-200 group-hover:translate-x-1 group-hover:text-primary-ink"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -96,14 +91,11 @@ export default function BlogPage() {
                   </svg>
                 </div>
 
-                <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                  {post.description}
-                </p>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{post.description}</p>
 
-                {/* Meta: date + read time */}
-                <div className="mt-4 flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
+                <div className="mt-4 flex items-center gap-3 text-xs text-subtle">
                   <span>{formatDate(post.date)}</span>
-                  <span className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                  <span className="h-1 w-1 rounded-full bg-border-strong" />
                   <span>{post.readTime} min de lectura</span>
                 </div>
               </div>

@@ -1,27 +1,312 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 /* Soporte de tema por clase - Tailwind v4 */
 @variant dark (&:where(.dark, .dark *));
 
+/* ============================================================
+   Design tokens
+   ============================================================ */
+:root {
+  /* Superficies y texto */
+  --bg: #fafaf9;
+  --bg-soft: #f4f4f2;
+  --surface: #ffffff;
+  --surface-2: #f7f7f6;
+  --fg: #17171b;
+  --muted: #55555f;
+  --subtle: #8a8a95;
+  --border: rgba(17, 17, 27, 0.09);
+  --border-strong: rgba(17, 17, 27, 0.16);
+
+  /* Acentos */
+  --primary: #6d5efc;
+  --primary-ink: #4c3ff0;
+  --primary-soft: rgba(109, 94, 252, 0.12);
+  --accent: #f0913b;
+  --sky: #3aa0ff;
+  --ring: rgba(109, 94, 252, 0.45);
+
+  /* Gradiente de marca */
+  --grad: linear-gradient(120deg, #6d5efc 0%, #8b5cf6 45%, #3aa0ff 100%);
+
+  /* Sombras */
+  --shadow-sm: 0 1px 2px rgba(17, 17, 27, 0.06), 0 1px 3px rgba(17, 17, 27, 0.04);
+  --shadow-md: 0 4px 12px rgba(17, 17, 27, 0.07), 0 2px 6px rgba(17, 17, 27, 0.05);
+  --shadow-lg: 0 18px 48px rgba(17, 17, 27, 0.12), 0 6px 16px rgba(17, 17, 27, 0.08);
+  --shadow-glow: 0 0 0 1px var(--primary-soft), 0 12px 40px rgba(109, 94, 252, 0.18);
+
+  /* Compat con nombres previos */
+  --background: var(--bg);
+  --foreground: var(--fg);
+}
+
 :root.dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --bg: #08080b;
+  --bg-soft: #0c0c11;
+  --surface: rgba(23, 23, 32, 0.72);
+  --surface-2: rgba(30, 30, 42, 0.6);
+  --fg: #f3f3f5;
+  --muted: #adadba;
+  --subtle: #74748a;
+  --border: rgba(139, 122, 255, 0.16);
+  --border-strong: rgba(139, 122, 255, 0.3);
+
+  --primary: #9a8bff;
+  --primary-ink: #b6abff;
+  --primary-soft: rgba(139, 122, 255, 0.16);
+  --accent: #ffab5e;
+  --sky: #6fbaff;
+  --ring: rgba(154, 139, 255, 0.55);
+
+  --grad: linear-gradient(120deg, #9a8bff 0%, #b18bff 45%, #6fbaff 100%);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55), 0 8px 20px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 0 1px var(--primary-soft), 0 16px 50px rgba(139, 122, 255, 0.28);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-soft: var(--bg-soft);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-ink: var(--primary-ink);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-sky: var(--sky);
+
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display), var(--font-geist-sans);
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+* {
+  border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--fg);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Fondo ambiental fijo */
+.app-shell {
+  position: relative;
+  min-height: 100dvh;
+  isolation: isolate;
+}
+.app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(900px 620px at 12% -8%, rgba(109, 94, 252, 0.16), transparent 60%),
+    radial-gradient(820px 560px at 92% 4%, rgba(58, 160, 255, 0.13), transparent 62%),
+    radial-gradient(760px 620px at 50% 108%, rgba(240, 145, 59, 0.08), transparent 60%);
+}
+:root.dark .app-shell::before {
+  background:
+    radial-gradient(1000px 700px at 12% -10%, rgba(139, 122, 255, 0.22), transparent 60%),
+    radial-gradient(900px 620px at 92% 2%, rgba(58, 160, 255, 0.16), transparent 62%),
+    radial-gradient(820px 680px at 50% 112%, rgba(255, 171, 94, 0.09), transparent 60%);
+}
+.app-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(circle at 50% 0%, black, transparent 75%);
+}
+
+/* ============================================================
+   Utilidades
+   ============================================================ */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.text-gradient {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.surface-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--primary-ink);
+}
+.eyebrow::before {
+  content: "";
+  width: 1.75rem;
+  height: 1px;
+  background: var(--grad);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.7rem 1.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.btn:active {
+  transform: translateY(1px) scale(0.99);
+}
+.btn-primary {
+  color: #fff;
+  background: var(--grad);
+  box-shadow: var(--shadow-glow);
+}
+.btn-primary:hover {
+  box-shadow: 0 0 0 1px var(--primary-soft), 0 20px 48px rgba(109, 94, 252, 0.32);
+  transform: translateY(-1px);
+}
+.btn-ghost {
+  color: var(--fg);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+}
+.btn-ghost:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+:where(a, button, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ============================================================
+   View Transitions API
+   La navegación entre rutas la coordina React <ViewTransition>
+   (flag experimental.viewTransition de Next). Aquí solo se
+   personaliza el crossfade por defecto y los elementos anclados.
+   ============================================================ */
+
+/* No bloquear clics mientras corre la transición */
+::view-transition {
+  pointer-events: none;
+}
+
+/* Crossfade por defecto entre páginas */
+::view-transition-old(root) {
+  animation: 220ms cubic-bezier(0.4, 0, 0.2, 1) both vt-out;
+}
+::view-transition-new(root) {
+  animation: 320ms cubic-bezier(0.16, 0.84, 0.44, 1) both vt-in;
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.994);
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.994);
+  }
+}
+
+/* Header anclado: no se mueve ni parpadea durante la transición */
+::view-transition-group(site-header) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(site-header) {
+  display: none;
+}
+::view-transition-new(site-header) {
+  animation: none;
+}
+
+/* Cambio de tema: barrido circular desde el punto de clic */
+:root.vt-theme::view-transition-old(root) {
+  animation: none;
+}
+:root.vt-theme::view-transition-new(root) {
+  animation: vt-theme-wipe 520ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  clip-path: circle(0% at var(--vt-x, 50%) var(--vt-y, 50%));
+}
+@keyframes vt-theme-wipe {
+  to {
+    clip-path: circle(160% at var(--vt-x, 50%) var(--vt-y, 50%));
+  }
+}
+
+/* ============================================================
+   Movimiento reducido
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
