@@ -31,8 +31,8 @@ export default function HeaderClient() {
       <div
         className={`mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 transition-all duration-300 sm:px-6 ${
           scrolled
-            ? "my-2 rounded-full border border-border bg-surface/85 py-2 shadow-[var(--shadow-md)] backdrop-blur-xl"
-            : "my-0 border border-transparent py-4"
+            ? "mt-3 mb-2 rounded-full border border-border bg-surface/85 py-2 shadow-[var(--shadow-md)] backdrop-blur-xl"
+            : "mt-3 border border-transparent py-4"
         }`}
       >
         <Link

@@ -187,7 +187,7 @@ export default function RootLayout({
           <ScrollProgress />
           <div className="app-shell">
             <HeaderClient />
-            <main className="mx-auto max-w-5xl px-5 sm:px-6">
+            <main className="mx-auto max-w-5xl px-5 pt-6 sm:px-6 sm:pt-8">
               <ViewTransition>{children}</ViewTransition>
             </main>
             <div className="mx-auto max-w-5xl px-5 sm:px-6">

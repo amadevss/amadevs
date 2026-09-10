@@ -104,7 +104,8 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 5.5rem;
+  /* Aire bajo el header pegajoso al saltar a una sección desde el navbar. */
+  scroll-padding-top: 6.5rem;
 }
 
 body {
@@ -243,12 +244,13 @@ body {
   pointer-events: none;
 }
 
-/* Crossfade por defecto entre páginas */
+/* Crossfade por defecto entre páginas. Duraciones cortas: la navegación
+   debe sentirse inmediata, no como una animación. */
 ::view-transition-old(root) {
-  animation: 220ms cubic-bezier(0.4, 0, 0.2, 1) both vt-out;
+  animation: 120ms cubic-bezier(0.4, 0, 0.2, 1) both vt-out;
 }
 ::view-transition-new(root) {
-  animation: 320ms cubic-bezier(0.16, 0.84, 0.44, 1) both vt-in;
+  animation: 170ms cubic-bezier(0.16, 0.84, 0.44, 1) both vt-in;
 }
 
 @keyframes vt-out {
@@ -287,6 +289,19 @@ body {
 @keyframes vt-theme-wipe {
   to {
     clip-path: circle(160% at var(--vt-x, 50%) var(--vt-y, 50%));
+  }
+}
+
+/* Dispositivos táctiles (móvil/tablet): la View Transitions API toma un
+   snapshot de toda la página —fondo con blur, backdrop-blur del header,
+   blobs de PageDecor— y animarlo cuesta demasiado en GPUs de móvil, por
+   lo que la navegación se siente lenta. Ahí se omite la animación y el
+   cambio de ruta (y de tema) es instantáneo. */
+@media (pointer: coarse) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }
 
