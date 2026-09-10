@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { unstable_ViewTransition as ViewTransition } from "react";
+import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "../components/ThemeProvider";
 import HeaderClient from "../components/HeaderClient";
+import SiteFooter from "../components/SiteFooter";
+import ScrollProgress from "../components/motion/ScrollProgress";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,37 +17,57 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://amadevs.vercel.app";
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://amadevs.vercel.app"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Desarrollador Full-stack | Portfolio",
+    default: "Bryan Oliveros Pérez — Desarrollador Full-stack, Conferencista, Consultor y Profesor",
     template: "%s | amadevs",
   },
   description:
-    "Desarrollador Full-stack especializado en React.js, Next.js, Node.js y TypeScript. Creo aplicaciones web escalables, sistemas administrativos, POS personalizados y plataformas modernas con integraciones inteligentes.",
+    "Bryan Oliveros Pérez (amadevs): desarrollador full-stack con más de 8 años de experiencia. Especialista en desarrollo web, optimización de navegadores y rendimiento web (Core Web Vitals), diseño de requerimientos, arquitectura y escalabilidad, dashboards y plataformas no-code. Especialista en Odoo, Vercel e infraestructura Knotion. Conferencista, consultor y profesor con más de 12 charlas sobre inteligencia artificial, con base en Tijuana, México.",
   keywords: [
+    "Bryan Oliveros Pérez",
+    "amadevs",
     "desarrollador full-stack",
-    "desarrollador web",
+    "especialista desarrollo web",
+    "optimización de navegadores",
+    "rendimiento web",
+    "Core Web Vitals",
+    "SEO técnico",
+    "conferencista tecnología",
+    "conferencista inteligencia artificial",
+    "consultor de software",
+    "profesor de desarrollo web",
+    "profesor de inteligencia artificial",
+    "especialista Odoo",
+    "especialista Vercel",
+    "infraestructura Knotion",
+    "diseño de requerimientos",
+    "arquitectura de software",
+    "escalabilidad",
     "React.js",
     "Next.js",
     "Node.js",
     "TypeScript",
-    "JavaScript",
-    "desarrollo web",
-    "aplicaciones web",
+    "dashboards",
+    "plataformas no-code",
+    "low-code",
     "sistemas administrativos",
     "POS",
-    "MongoDB",
-    "PostgreSQL",
-    "Firebase",
-    "Stripe",
-    "Vercel",
-    "desarrollador freelance",
-    "programador",
-    "desarrollo de software",
+    "Tijuana",
+    "México",
+    "desarrollo web",
   ],
-  authors: [{ name: "amadevs" }],
-  creator: "amadevs",
+  authors: [{ name: "Bryan Oliveros Pérez", url: SITE_URL }],
+  creator: "Bryan Oliveros Pérez",
   publisher: "amadevs",
   robots: {
     index: true,
@@ -61,25 +84,25 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_MX",
     url: "/",
-    siteName: "amadevs - Desarrollador Full-stack",
-    title: "Desarrollador Full-stack | Portfolio Profesional",
+    siteName: "Bryan Oliveros Pérez — amadevs",
+    title: "Bryan Oliveros Pérez — Desarrollador Full-stack, Conferencista, Consultor y Profesor",
     description:
-      "Desarrollador Full-stack especializado en React.js, Next.js, Node.js y TypeScript. Creo aplicaciones web escalables, sistemas administrativos, POS personalizados y plataformas modernas.",
+      "Más de 8 años construyendo software web escalable: diseño de requerimientos, arquitectura, dashboards y plataformas no-code. Conferencista, consultor y profesor.",
     images: [
       {
-        url: "/profile.jpeg",
-        width: 1200,
-        height: 630,
-        alt: "Desarrollador Full-stack - amadevs",
+        url: "/profile.png",
+        width: 1080,
+        height: 1350,
+        alt: "Bryan Oliveros Pérez — Desarrollador Full-stack",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Desarrollador Full-stack | Portfolio",
+    title: "Bryan Oliveros Pérez — Desarrollador Full-stack, Conferencista, Consultor y Profesor",
     description:
-      "Desarrollador Full-stack especializado en React.js, Next.js, Node.js y TypeScript. Creo aplicaciones web escalables y sistemas modernos.",
-    images: ["/profile.jpeg"],
+      "Más de 8 años en desarrollo de software: arquitectura, escalabilidad, dashboards y plataformas no-code. Conferencista, consultor y profesor.",
+    images: ["/profile.png"],
     creator: "@amadevs",
   },
   alternates: {
@@ -92,12 +115,38 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Person",
-  name: "amadevs",
-  jobTitle: "Desarrollador Full-stack",
+  name: "Bryan Oliveros Pérez",
+  alternateName: "amadevs",
+  jobTitle: ["Desarrollador Full-stack", "Conferencista", "Consultor", "Profesor"],
   description:
-    "Desarrollador Full-stack especializado en React.js, Next.js, Node.js y TypeScript. Creo aplicaciones web escalables, sistemas administrativos, POS personalizados y plataformas modernas.",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://amadevs.vercel.app",
+    "Desarrollador full-stack con más de 8 años de experiencia en desarrollo de software, diseño de requerimientos, arquitectura y escalabilidad. Especializado en desarrollo web, creación de dashboards y plataformas no-code para usuarios de todos los niveles. Especialista en Odoo, Vercel e infraestructura Knotion. Conferencista, consultor y profesor con más de 12 conferencias sobre inteligencia artificial.",
+  url: SITE_URL,
+  image: `${SITE_URL}/profile.png`,
+  email: "grupoconnectados@gmail.com",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Tijuana",
+    addressRegion: "Baja California",
+    addressCountry: "MX",
+  },
   knowsAbout: [
+    "Desarrollo de software",
+    "Desarrollo web",
+    "Optimización de navegadores",
+    "Rendimiento web",
+    "Core Web Vitals",
+    "SEO técnico",
+    "Compatibilidad cross-browser",
+    "Inteligencia artificial",
+    "Diseño de requerimientos",
+    "Arquitectura de software",
+    "Escalabilidad",
+    "Dashboards",
+    "Plataformas no-code",
+    "Low-code",
+    "Odoo",
+    "Vercel",
+    "Knotion",
     "JavaScript",
     "TypeScript",
     "React.js",
@@ -109,15 +158,15 @@ const jsonLd = {
     "MongoDB",
     "Firebase",
     "Prisma",
-    "Mongoose",
     "Stripe",
-    "JWT",
-    "OAuth",
     "REST API",
     "GraphQL",
-    "Desarrollo Web",
   ],
-  sameAs: [],
+  sameAs: [
+    "https://www.linkedin.com/in/bryan-oliveros-perez-amadevs",
+    "https://github.com/amadevss",
+    "https://www.instagram.com/amadevss/",
+  ],
 };
 
 export default function RootLayout({
@@ -127,15 +176,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} antialiased`}
+      >
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <ThemeProvider>
-          <div className="min-h-dvh bg-[radial-gradient(1200px_800px_at_50%_-200px,rgba(99,102,241,0.20),transparent)] dark:bg-[radial-gradient(1200px_800px_at_50%_-200px,rgba(139,92,246,0.25),transparent)] dark:bg-gradient-to-b dark:from-slate-950 dark:via-indigo-950/50 dark:to-slate-950">
+          <ScrollProgress />
+          <div className="app-shell">
             <HeaderClient />
-            <main className="mx-auto max-w-4xl px-6 pb-10">{children}</main>
+            <main className="mx-auto max-w-5xl px-5 sm:px-6">
+              <ViewTransition>{children}</ViewTransition>
+            </main>
+            <div className="mx-auto max-w-5xl px-5 sm:px-6">
+              <SiteFooter />
+            </div>
           </div>
         </ThemeProvider>
       </body>
