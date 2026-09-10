@@ -20,6 +20,9 @@ export interface Service {
   sort_order: number;
 }
 
+/** @vercel/postgres deserializa timestamptz como Date. */
+export type Timestamptz = string | Date;
+
 export interface Booking {
   id: string;
   reference: string;
@@ -29,20 +32,20 @@ export interface Booking {
   customer_company: string | null;
   customer_note: string | null;
   customer_timezone: string;
-  starts_at: string; // ISO 8601 (UTC)
-  ends_at: string; // ISO 8601 (UTC)
+  starts_at: Timestamptz;
+  ends_at: Timestamptz;
   status: BookingStatus;
   amount_cents: number;
   currency: string;
   stripe_checkout_session_id: string | null;
   stripe_payment_intent_id: string | null;
   stripe_receipt_url: string | null;
-  hold_expires_at: string | null;
-  paid_at: string | null;
-  canceled_at: string | null;
+  hold_expires_at: Timestamptz | null;
+  paid_at: Timestamptz | null;
+  canceled_at: Timestamptz | null;
   meeting_url: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: Timestamptz;
+  updated_at: Timestamptz;
 }
 
 export interface BookingWithService extends Booking {
