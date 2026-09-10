@@ -523,3 +523,82 @@ body {
     animation: none !important;
   }
 }
+
+/* ============================================================
+   Agenda / reservas
+   ============================================================ */
+.agenda-input,
+.agenda-textarea {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  padding: 0.6rem 0.85rem;
+  font-size: 0.9rem;
+  color: var(--fg);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.agenda-textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+.agenda-input::placeholder,
+.agenda-textarea::placeholder {
+  color: var(--subtle);
+}
+.agenda-input:focus-visible,
+.agenda-textarea:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* Celda de día del calendario */
+.agenda-day {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.65rem;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.agenda-day:not(:disabled):hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+.agenda-day:disabled {
+  color: var(--subtle);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.agenda-day[data-selected="true"] {
+  background: var(--grad);
+  color: #fff;
+  font-weight: 700;
+}
+
+@media print {
+  header,
+  footer,
+  .app-shell::before,
+  .app-shell::after,
+  .page-decor,
+  .scroll-progress,
+  .print-hide {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  main {
+    max-width: none !important;
+  }
+  #recibo {
+    box-shadow: none;
+    border: 1px solid #cbd5e1;
+  }
+}

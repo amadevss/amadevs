@@ -11,6 +11,8 @@ const NAV = [
   { href: "/#roles", label: "Roles" },
   { href: "/#conferencias", label: "Conferencias" },
   { href: "/#proyectos", label: "Proyectos" },
+  { href: "/blog", label: "Blog" },
+  { href: "/agenda", label: "Agenda" },
 ];
 
 export default function HeaderClient() {
@@ -59,10 +61,11 @@ export default function HeaderClient() {
           <SocialLinks className="hidden lg:flex" btnClass="h-8 w-8" iconClass="h-[15px] w-[15px]" />
           <span className="hidden h-5 w-px bg-border-strong lg:block" />
           <Link
-            href="/blog"
-            className="hidden shrink-0 rounded-full border border-border-strong bg-surface px-3.5 py-1.5 text-sm font-medium text-fg transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] sm:inline-flex"
+            href="/agenda"
+            className="hidden shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] sm:inline-flex"
+            style={{ background: "var(--grad)" }}
           >
-            Blog
+            Agenda una sesión
           </Link>
           <ThemeToggle />
           <button
@@ -86,7 +89,7 @@ export default function HeaderClient() {
       {open && (
         <div className="mx-auto mt-1 max-w-5xl px-5 md:hidden">
           <nav className="flex flex-col gap-1 rounded-2xl border border-border bg-surface/95 p-2 shadow-[var(--shadow-lg)] backdrop-blur-xl">
-            {[...NAV, { href: "/blog", label: "Blog" }].map((item) => (
+            {NAV.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
