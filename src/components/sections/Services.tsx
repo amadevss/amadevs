@@ -1,7 +1,6 @@
 import SectionHeading from "../SectionHeading";
 import Reveal from "../motion/Reveal";
 import TiltCard from "../motion/TiltCard";
-import ScrollTilt from "../motion/ScrollTilt";
 import Icon from "../Icon";
 import { services } from "@/lib/content";
 
@@ -17,9 +16,8 @@ export default function Services() {
 
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {services.map((s, i) => (
-          <ScrollTilt key={s.title} strength={12}>
-            <Reveal delay={i * 0.06}>
-              <TiltCard className="h-full">
+          <Reveal key={s.title} delay={i * 0.06}>
+            <TiltCard className="h-full">
                 <article className="surface-card group flex h-full flex-col gap-4 p-6 transition-shadow duration-300 hover:shadow-[var(--shadow-lg)]">
                   <span
                     className="grid h-11 w-11 place-items-center rounded-xl border"
@@ -37,9 +35,8 @@ export default function Services() {
                   </h3>
                   <p className="text-sm leading-relaxed text-muted">{s.description}</p>
                 </article>
-              </TiltCard>
-            </Reveal>
-          </ScrollTilt>
+            </TiltCard>
+          </Reveal>
         ))}
       </div>
     </section>

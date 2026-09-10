@@ -1,6 +1,5 @@
 import SectionHeading from "../SectionHeading";
 import Reveal from "../motion/Reveal";
-import ScrollTilt from "../motion/ScrollTilt";
 import Logo from "../Logo";
 import { talks } from "@/lib/content";
 
@@ -16,9 +15,8 @@ export default function Talks() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         {talks.map((t, i) => (
-          <ScrollTilt key={t.id} strength={10}>
-            <Reveal delay={(i % 2) * 0.06} tilt={8}>
-              <article className="surface-card flex h-full gap-4 p-5">
+          <Reveal key={t.id} delay={(i % 2) * 0.06}>
+            <article className="surface-card flex h-full gap-4 p-5">
                 <Logo src={t.logo} alt={t.institution ?? t.title} className="h-11 w-11" />
                 <div className="min-w-0">
                   <h3 className="font-display text-[15px] font-semibold leading-snug tracking-tight">
@@ -29,9 +27,8 @@ export default function Talks() {
                   )}
                   <p className="mt-2 text-[13px] leading-relaxed text-muted">{t.description}</p>
                 </div>
-              </article>
-            </Reveal>
-          </ScrollTilt>
+            </article>
+          </Reveal>
         ))}
       </div>
     </section>

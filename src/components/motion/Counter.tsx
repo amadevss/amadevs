@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  animate,
-  useInView,
-  useMotionValue,
-  useReducedMotion,
-  useTransform,
-  motion,
-} from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   value: number;
@@ -18,34 +10,66 @@ type Props = {
   text?: string;
 };
 
+/**
+ * Cuenta ascendente al entrar en viewport. `requestAnimationFrame` + un
+ * IntersectionObserver de un solo uso; sin dependencias de animación.
+ */
 export default function Counter({ value, prefix = "", suffix = "", text }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.6 });
-  const reduce = useReducedMotion();
-
-  const mv = useMotionValue(0);
-  const rounded = useTransform(mv, (v) => `${prefix}${Math.round(v)}${suffix}`);
+  const [display, setDisplay] = useState(0);
 
   useEffect(() => {
     if (text) return;
-    if (!inView) return;
-    if (reduce) {
-      mv.set(value);
+    const el = ref.current;
+    if (!el) return;
+
+    const prefersReduced =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReduced || typeof IntersectionObserver === "undefined") {
+      setDisplay(value);
       return;
     }
-    const controls = animate(mv, value, { duration: 1.4, ease: [0.16, 0.84, 0.44, 1] });
-    // Red de seguridad: si rAF viene throttleado (pestaña en segundo plano),
-    // fija el valor final para no quedar congelado a medias.
-    const safety = setTimeout(() => mv.set(value), 1800);
-    return () => {
-      controls.stop();
-      clearTimeout(safety);
+
+    let raf = 0;
+    let start = 0;
+    const duration = 1400;
+    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const tick = (now: number) => {
+      if (!start) start = now;
+      const p = Math.min((now - start) / duration, 1);
+      setDisplay(Math.round(value * easeOutCubic(p)));
+      if (p < 1) raf = requestAnimationFrame(tick);
     };
-  }, [inView, reduce, value, mv, text]);
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          raf = requestAnimationFrame(tick);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.6 },
+    );
+    io.observe(el);
+
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, [value, text]);
 
   if (text) {
     return <span ref={ref}>{text}</span>;
   }
 
-  return <motion.span ref={ref}>{rounded}</motion.span>;
+  return (
+    <span ref={ref}>
+      {prefix}
+      {display}
+      {suffix}
+    </span>
+  );
 }
