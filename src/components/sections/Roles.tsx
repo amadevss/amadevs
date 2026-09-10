@@ -1,6 +1,5 @@
 import SectionHeading from "../SectionHeading";
 import Reveal from "../motion/Reveal";
-import ScrollTilt from "../motion/ScrollTilt";
 import { roles } from "@/lib/content";
 
 const deco = [
@@ -23,9 +22,8 @@ export default function Roles() {
         {roles.map((r, i) => {
           const d = deco[i % deco.length];
           return (
-            <ScrollTilt key={r.key} strength={12}>
-              <Reveal delay={i * 0.08} className="h-full">
-                <article className="surface-card relative flex h-full flex-col p-6">
+            <Reveal key={r.key} delay={i * 0.08} className="h-full">
+              <article className="surface-card relative flex h-full flex-col p-6">
                   <span
                     className="grid h-11 w-11 place-items-center rounded-xl text-xl"
                     style={{ background: `${d.color}20`, border: `1px solid ${d.color}45` }}
@@ -48,9 +46,8 @@ export default function Roles() {
                       ))}
                     </ul>
                   )}
-                </article>
-              </Reveal>
-            </ScrollTilt>
+              </article>
+            </Reveal>
           );
         })}
       </div>
