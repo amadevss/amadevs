@@ -1,6 +1,5 @@
 import SectionHeading from "../SectionHeading";
 import Reveal from "../motion/Reveal";
-import ScrollTilt from "../motion/ScrollTilt";
 import { skillGroups } from "@/lib/content";
 
 export default function Skills() {
@@ -15,9 +14,8 @@ export default function Skills() {
 
       <div className="grid gap-5 md:grid-cols-2">
         {skillGroups.map((group, i) => (
-          <ScrollTilt key={group.title} strength={10}>
-            <Reveal delay={i * 0.05}>
-              <div className="surface-card h-full p-6">
+          <Reveal key={group.title} delay={i * 0.05}>
+            <div className="surface-card h-full p-6">
                 <h3 className="flex items-center gap-2 font-display text-sm font-semibold uppercase tracking-wider text-subtle">
                   <span
                     className="grid h-7 w-7 place-items-center rounded-lg text-sm"
@@ -38,9 +36,8 @@ export default function Skills() {
                     </span>
                   ))}
                 </div>
-              </div>
-            </Reveal>
-          </ScrollTilt>
+            </div>
+          </Reveal>
         ))}
       </div>
     </section>

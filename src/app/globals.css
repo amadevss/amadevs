@@ -291,6 +291,219 @@ body {
 }
 
 /* ============================================================
+   Animaciones (CSS puro / scroll-driven)
+   Sustituyen a Framer Motion. Todo corre en el compositor o con
+   un único IntersectionObserver compartido (hook useReveal).
+   ============================================================ */
+
+/* Reveal al entrar en viewport. Sin JS el contenido se ve siempre;
+   con JS parte oculto y el hook marca [data-revealed]. */
+.reveal {
+  opacity: 1;
+}
+@media (scripting: enabled) {
+  .reveal {
+    opacity: 0;
+    transform: translate3d(0, var(--reveal-y, 24px), 0);
+    transition:
+      opacity 0.6s cubic-bezier(0.16, 0.84, 0.44, 1) var(--reveal-delay, 0s),
+      transform 0.6s cubic-bezier(0.16, 0.84, 0.44, 1) var(--reveal-delay, 0s);
+  }
+  .reveal[data-revealed="true"] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Entrada del hero: animación de carga, sin JS ni observer */
+.hero-in {
+  animation: hero-in 0.7s cubic-bezier(0.16, 0.84, 0.44, 1) both;
+  animation-delay: var(--d, 0s);
+}
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Elevación al pasar el puntero (sustituye TiltCard y su seguimiento
+   del ratón con springs). Sólo transform → compositor. */
+.tilt-card {
+  transition: transform 0.3s cubic-bezier(0.16, 0.84, 0.44, 1);
+}
+@media (hover: hover) {
+  .tilt-card:hover {
+    transform: translate3d(0, -6px, 0);
+  }
+}
+
+/* Retrato del hero: leve inclinación 3D sólo en hover */
+.hero-portrait {
+  transition: transform 0.4s cubic-bezier(0.16, 0.84, 0.44, 1);
+}
+@media (hover: hover) {
+  .hero-portrait:hover {
+    transform: perspective(1100px) rotateX(3deg) rotateY(-6deg) translateY(-4px);
+  }
+}
+
+/* Resplandores ambientales: flotación lenta en el compositor */
+.hero-glow {
+  animation: hero-float 9s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.hero-glow--b {
+  animation-duration: 11s;
+  animation-direction: alternate-reverse;
+}
+@keyframes hero-float {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(10px, -18px, 0);
+  }
+}
+
+/* Roles rotativos (sustituye AnimatePresence + rotateX con spring) */
+.rotating-roles {
+  position: relative;
+  display: inline-grid;
+  overflow: hidden;
+  vertical-align: bottom;
+  line-height: 1.25;
+  perspective: 600px;
+}
+.rotating-roles__ghost {
+  visibility: hidden;
+  grid-area: 1 / 1;
+  line-height: 1.25;
+}
+.rotating-roles__item {
+  grid-area: 1 / 1;
+  line-height: 1.25;
+  animation: role-in 0.45s cubic-bezier(0.16, 0.84, 0.44, 1) both;
+}
+@keyframes role-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5em) rotateX(-40deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Barra de progreso de scroll.
+   Chrome/Firefox: la anima el compositor con animation-timeline, cero JS.
+   Safari y navegadores antiguos: el componente cae a --scroll-progress. */
+.scroll-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 2px;
+  z-index: 60;
+  transform-origin: 0 50%;
+  transform: scaleX(var(--scroll-progress, 0));
+  background: var(--grad);
+}
+@supports (animation-timeline: scroll()) {
+  .scroll-progress {
+    transform: scaleX(0);
+    animation: scroll-progress-grow linear both;
+    animation-timeline: scroll(root);
+  }
+}
+@keyframes scroll-progress-grow {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Manchas de color de fondo. Parallax de scroll sólo por CSS donde exista
+   soporte; si no, quedan quietas. */
+.page-decor {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  overflow: hidden;
+}
+.page-decor__blob {
+  position: absolute;
+  border-radius: 9999px;
+  will-change: transform;
+}
+.page-decor__blob--1 {
+  left: 6%;
+  top: 10%;
+  width: 46vh;
+  height: 46vh;
+  filter: blur(90px);
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.3), transparent 65%);
+}
+.page-decor__blob--2 {
+  right: 4%;
+  top: 34%;
+  width: 52vh;
+  height: 52vh;
+  filter: blur(100px);
+  background: radial-gradient(circle, rgba(58, 160, 255, 0.24), transparent 65%);
+}
+.page-decor__blob--3 {
+  left: 30%;
+  bottom: 6%;
+  width: 40vh;
+  height: 40vh;
+  filter: blur(90px);
+  background: radial-gradient(circle, rgba(240, 145, 59, 0.22), transparent 65%);
+}
+@supports (animation-timeline: scroll()) {
+  .page-decor__blob {
+    animation: linear both;
+    animation-timeline: scroll(root);
+  }
+  .page-decor__blob--1 {
+    animation-name: decor-drift-1;
+  }
+  .page-decor__blob--2 {
+    animation-name: decor-drift-2;
+  }
+  .page-decor__blob--3 {
+    animation-name: decor-drift-3;
+  }
+}
+@keyframes decor-drift-1 {
+  from {
+    transform: translate3d(-2vw, 6vh, 0);
+  }
+  to {
+    transform: translate3d(6vw, -40vh, 0);
+  }
+}
+@keyframes decor-drift-2 {
+  from {
+    transform: translate3d(3vw, -4vh, 0);
+  }
+  to {
+    transform: translate3d(-5vw, 32vh, 0);
+  }
+}
+@keyframes decor-drift-3 {
+  from {
+    transform: translate3d(0, 4vh, 0);
+  }
+  to {
+    transform: translate3d(0, -24vh, 0);
+  }
+}
+
+/* ============================================================
    Movimiento reducido
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,4 @@
-"use client";
-
-import { motion } from "motion/react";
+import Reveal from "../motion/Reveal";
 import Counter from "../motion/Counter";
 import { metrics } from "@/lib/content";
 
@@ -9,12 +7,11 @@ export default function Metrics() {
     <section className="py-4">
       <div className="surface-card grid grid-cols-2 gap-px overflow-hidden bg-border p-px lg:grid-cols-4">
         {metrics.map((m, i) => (
-          <motion.div
+          <Reveal
             key={m.label}
-            initial={{ opacity: 0, y: 18 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.6 }}
-            transition={{ duration: 0.6, delay: i * 0.08 }}
+            as="div"
+            delay={i * 0.08}
+            y={18}
             className="bg-surface px-5 py-7 text-center"
           >
             <div className="text-xl">{m.emoji}</div>
@@ -26,7 +23,7 @@ export default function Metrics() {
             <div className="mt-2 text-xs font-medium uppercase tracking-wider text-subtle">
               {m.label}
             </div>
-          </motion.div>
+          </Reveal>
         ))}
       </div>
     </section>

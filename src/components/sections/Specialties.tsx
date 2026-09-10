@@ -1,7 +1,6 @@
 import SectionHeading from "../SectionHeading";
 import Reveal from "../motion/Reveal";
 import TiltCard from "../motion/TiltCard";
-import ScrollTilt from "../motion/ScrollTilt";
 import Logo from "../Logo";
 import { specialties } from "@/lib/content";
 
@@ -26,9 +25,8 @@ export default function Specialties() {
 
       <div className="grid gap-5 md:grid-cols-3">
         {specialties.map((s, i) => (
-          <ScrollTilt key={s.name} strength={14}>
-            <Reveal delay={i * 0.06}>
-              <TiltCard className="h-full">
+          <Reveal key={s.name} delay={i * 0.06}>
+            <TiltCard className="h-full">
                 <article
                   className="surface-card flex h-full flex-col gap-4 p-6"
                   style={{ borderColor: `${s.color}40` }}
@@ -47,9 +45,8 @@ export default function Specialties() {
                     aria-hidden
                   />
                 </article>
-              </TiltCard>
-            </Reveal>
-          </ScrollTilt>
+            </TiltCard>
+          </Reveal>
         ))}
       </div>
 
