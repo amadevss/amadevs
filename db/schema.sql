@@ -65,7 +65,8 @@ create table if not exists availability_rule (
   end_time   time     not null,
   timezone   text     not null default 'America/Tijuana',
   active     boolean  not null default true,
-  check (start_time < end_time)
+  check (start_time < end_time),
+  constraint availability_rule_unique unique (weekday, start_time, end_time, timezone)
 );
 
 -- ---------------------------------------------------------------------------
@@ -172,9 +173,9 @@ create trigger booking_set_updated_at
 
 insert into service (slug, name, description, duration_minutes, price_cents, currency, sort_order) values
   ('diagnostico-15', 'Llamada de diagnóstico',     'Videollamada breve para entender tu necesidad.', 15,      0, 'mxn', 0),
-  ('consultoria-1h', 'Consultoría · 1 hora',       'Sesión 1:1 enfocada en un tema concreto.',       60, 150000, 'mxn', 1),
-  ('consultoria-2h', 'Consultoría · 2 horas',      'Sesión extendida para revisión profunda.',      120, 280000, 'mxn', 2),
-  ('consultoria-3h', 'Consultoría · media jornada','Bloque de trabajo conjunto.',                   180, 390000, 'mxn', 3)
+  ('consultoria-1h', 'Consultoría · 1 hora',       'Sesión 1:1 enfocada en un tema concreto.',       60, 120000, 'mxn', 1),
+  ('consultoria-2h', 'Consultoría · 2 horas',      'Sesión extendida para revisión profunda.',      120, 220000, 'mxn', 2),
+  ('consultoria-3h', 'Consultoría · media jornada','Bloque de trabajo conjunto.',                   180, 300000, 'mxn', 3)
 on conflict (slug) do nothing;
 
 -- Horario: lunes a viernes. weekday 1=lunes ... 5=viernes
