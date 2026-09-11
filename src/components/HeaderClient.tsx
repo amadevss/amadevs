@@ -61,10 +61,10 @@ export default function HeaderClient() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2"> 
           <Link
             href="/agenda"
-            className="hidden shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] sm:inline-flex"
+            className=" shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] inline-flex"
             style={{ background: "var(--grad)" }}
           >
             Agenda una sesión
