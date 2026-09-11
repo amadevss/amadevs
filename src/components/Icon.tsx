@@ -42,6 +42,14 @@ const paths: Record<string, React.ReactNode> = {
       <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" />
     </>
   ),
+  dashboard: (
+    <>
+      <rect x="3" y="3" width="7" height="9" rx="1.5" />
+      <rect x="14" y="3" width="7" height="5" rx="1.5" opacity="0.55" />
+      <rect x="14" y="12" width="7" height="9" rx="1.5" />
+      <rect x="3" y="16" width="7" height="5" rx="1.5" opacity="0.55" />
+    </>
+  ),
 };
 
 export default function Icon({ name, className }: Props) {

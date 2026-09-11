@@ -5,17 +5,11 @@ import {
   formatMoney,
   STATUS_LABEL,
   STATUS_TONE,
+  TONE_CLASS,
 } from "@/lib/agenda/format";
 import type { BookingWithService } from "@/lib/agenda/types";
 import PrintButton from "./PrintButton";
 import AutoRefresh from "./AutoRefresh";
-
-const TONE_CLASS: Record<string, string> = {
-  ok: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  warn: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  muted: "border-border bg-black/5 text-subtle dark:bg-white/5",
-  bad: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
-};
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (

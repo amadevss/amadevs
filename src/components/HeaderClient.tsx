@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import ThemeToggle from "./ThemeToggle";
 import SocialLinks from "./SocialLinks";
+import Icon from "./Icon";
 
 const NAV = [
   { href: "/#sobre-mi", label: "Sobre mí" },
@@ -70,6 +71,13 @@ export default function HeaderClient() {
             Agenda una sesión
           </Link>
           <ThemeToggle />
+          <Link
+            href="/dashboard"
+            aria-label="Dashboard"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border-strong bg-surface text-fg shadow-[var(--shadow-sm)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
+          >
+            <Icon name="dashboard" className="h-[18px] w-[18px]" />
+          </Link>
           <button
             type="button"
             aria-label="Abrir menú"

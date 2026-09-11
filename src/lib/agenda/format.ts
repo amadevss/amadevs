@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import type { BookingStatus } from "./types";
+import type { BookingStatus, PaymentStatus } from "./types";
 
 /** @vercel/postgres devuelve las columnas timestamptz como objetos Date. */
 export type DateInput = string | Date;
@@ -51,4 +51,25 @@ export const STATUS_TONE: Record<BookingStatus, "ok" | "warn" | "muted" | "bad">
   canceled: "bad",
   expired: "muted",
   refunded: "bad",
+};
+
+export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
+  pending: "Pendiente",
+  succeeded: "Exitoso",
+  failed: "Fallido",
+  refunded: "Reembolsado",
+};
+
+export const PAYMENT_STATUS_TONE: Record<PaymentStatus, "ok" | "warn" | "muted" | "bad"> = {
+  pending: "warn",
+  succeeded: "ok",
+  failed: "bad",
+  refunded: "muted",
+};
+
+export const TONE_CLASS: Record<"ok" | "warn" | "muted" | "bad", string> = {
+  ok: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  warn: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  muted: "border-border bg-black/5 text-subtle dark:bg-white/5",
+  bad: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
 };
