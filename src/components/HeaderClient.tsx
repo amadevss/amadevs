@@ -42,12 +42,11 @@ export default function HeaderClient() {
       >
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2 font-display text-[15px] font-semibold tracking-tight"
+          className="group flex shrink-0 items-center gap-2.5 font-display text-[22px] font-semibold tracking-tight"
         >
-          <span className="grid h-7 w-7 place-items-center rounded-lg text-white" style={{ background: "var(--grad)" }}>
-            <span className="text-xs font-bold">a</span>
+        <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-purple-500 bg-clip-text text-transparent drop-shadow-[0_2px_12px_rgba(168,85,247,0.35)]">
+            BOP
           </span>
-          amadevs
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
