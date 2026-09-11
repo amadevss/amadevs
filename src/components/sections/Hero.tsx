@@ -72,24 +72,24 @@ export default function Hero() {
 
         {/* Retrato: leve tilt al pasar el puntero, resplandores flotando */}
         <div className="relative mx-auto w-full max-w-sm">
+          {/* Resplandores: sólo radial-gradient, sin filter: blur() (caro en iOS
+              y aquí encima animan). El degradado ya da el borde difuminado. */}
           <div
             aria-hidden
-            className="hero-glow absolute -bottom-6 -left-6 -z-10 h-36 w-36 rounded-full blur-3xl"
-          >
-            <div
-              className="h-full w-full rounded-full"
-              style={{ background: "radial-gradient(circle,rgba(139,92,246,0.55),transparent 70%)" }}
-            />
-          </div>
+            className="hero-glow absolute -bottom-12 -left-12 -z-10 h-52 w-52 rounded-full"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(139,92,246,0.45) 0%, rgba(139,92,246,0.16) 45%, transparent 75%)",
+            }}
+          />
           <div
             aria-hidden
-            className="hero-glow hero-glow--b absolute -right-6 -top-6 -z-10 h-28 w-28 rounded-full blur-3xl"
-          >
-            <div
-              className="h-full w-full rounded-full"
-              style={{ background: "radial-gradient(circle,rgba(240,145,59,0.55),transparent 70%)" }}
-            />
-          </div>
+            className="hero-glow hero-glow--b absolute -right-12 -top-12 -z-10 h-44 w-44 rounded-full"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(240,145,59,0.42) 0%, rgba(240,145,59,0.15) 45%, transparent 75%)",
+            }}
+          />
 
           <div className="hero-in" style={{ "--d": "0.2s" } as React.CSSProperties}>
             <div className="hero-portrait surface-card relative overflow-hidden p-4">

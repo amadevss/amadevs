@@ -31,8 +31,11 @@ export default function Contact() {
           <div className="absolute inset-x-0 top-0 h-1" style={{ background: "var(--grad)" }} />
           <div
             aria-hidden
-            className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full blur-3xl"
-            style={{ background: "var(--grad)", opacity: 0.16 }}
+            className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full"
+            style={{
+              background: "radial-gradient(circle, var(--primary) 0%, transparent 70%)",
+              opacity: 0.2,
+            }}
           />
 
           <div className="relative grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:items-center">

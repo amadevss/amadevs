@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { unstable_ViewTransition as ViewTransition } from "react";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "../components/ThemeProvider";
 import HeaderClient from "../components/HeaderClient";
+import RouteTransition from "../components/RouteTransition";
 import SiteFooter from "../components/SiteFooter";
 import ScrollProgress from "../components/motion/ScrollProgress";
 
@@ -188,7 +188,7 @@ export default function RootLayout({
           <div className="app-shell">
             <HeaderClient />
             <main className="mx-auto max-w-5xl px-5 pt-6 sm:px-6 sm:pt-8">
-              <ViewTransition>{children}</ViewTransition>
+              <RouteTransition>{children}</RouteTransition>
             </main>
             <div className="mx-auto max-w-5xl px-5 sm:px-6">
               <SiteFooter />

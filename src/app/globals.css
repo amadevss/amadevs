@@ -44,8 +44,10 @@
 :root.dark {
   --bg: #08080b;
   --bg-soft: #0c0c11;
-  --surface: rgba(23, 23, 32, 0.72);
-  --surface-2: rgba(30, 30, 42, 0.6);
+  /* Opacidad alta a propósito: las tarjetas ya no usan backdrop-filter
+     (coste alto en iOS Safari), así que el fondo se cubre con alpha. */
+  --surface: rgba(22, 22, 30, 0.92);
+  --surface-2: rgba(32, 32, 44, 0.88);
   --fg: #f3f3f5;
   --muted: #adadba;
   --subtle: #74748a;
@@ -173,7 +175,9 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(12px);
+  /* Sin backdrop-filter: en iOS Safari cada tarjeta con blur de fondo
+     obliga a recomponer todo lo que tiene detrás en cada frame de scroll.
+     El look "cristal" se consigue con la opacidad de --surface. */
 }
 
 .eyebrow {
@@ -292,11 +296,10 @@ body {
   }
 }
 
-/* Dispositivos táctiles (móvil/tablet): la View Transitions API toma un
-   snapshot de toda la página —fondo con blur, backdrop-blur del header,
-   blobs de PageDecor— y animarlo cuesta demasiado en GPUs de móvil, por
-   lo que la navegación se siente lenta. Ahí se omite la animación y el
-   cambio de ruta (y de tema) es instantáneo. */
+/* Dispositivos táctiles (móvil/tablet): en <RouteTransition> ya se evita
+   envolver la ruta en <ViewTransition>, pero el cambio de tema sí usa la
+   API. Aquí se anula cualquier animación de transición que quede, para que
+   en iOS Safari nunca se pague el coste de animar el snapshot. */
 @media (pointer: coarse) {
   ::view-transition-group(*),
   ::view-transition-old(*),
@@ -452,34 +455,52 @@ body {
 .page-decor__blob {
   position: absolute;
   border-radius: 9999px;
-  will-change: transform;
 }
+/* El "glow" difuminado se hace con las paradas del radial-gradient, no con
+   filter: blur(). WebKit en iOS colapsa al componer blurs de radio grande
+   sobre elementos grandes y fijos: era la causa principal del lag de scroll
+   y de que la navegación tardara (el snapshot de View Transitions también
+   los captura). */
 .page-decor__blob--1 {
   left: 6%;
   top: 10%;
-  width: 46vh;
-  height: 46vh;
-  filter: blur(90px);
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.3), transparent 65%);
+  width: 52vh;
+  height: 52vh;
+  background: radial-gradient(
+    circle,
+    rgba(139, 92, 246, 0.26) 0%,
+    rgba(139, 92, 246, 0.1) 38%,
+    transparent 72%
+  );
 }
 .page-decor__blob--2 {
   right: 4%;
   top: 34%;
-  width: 52vh;
-  height: 52vh;
-  filter: blur(100px);
-  background: radial-gradient(circle, rgba(58, 160, 255, 0.24), transparent 65%);
+  width: 58vh;
+  height: 58vh;
+  background: radial-gradient(
+    circle,
+    rgba(58, 160, 255, 0.2) 0%,
+    rgba(58, 160, 255, 0.08) 38%,
+    transparent 72%
+  );
 }
 .page-decor__blob--3 {
   left: 30%;
   bottom: 6%;
-  width: 40vh;
-  height: 40vh;
-  filter: blur(90px);
-  background: radial-gradient(circle, rgba(240, 145, 59, 0.22), transparent 65%);
+  width: 46vh;
+  height: 46vh;
+  background: radial-gradient(
+    circle,
+    rgba(240, 145, 59, 0.18) 0%,
+    rgba(240, 145, 59, 0.07) 38%,
+    transparent 72%
+  );
 }
 @supports (animation-timeline: scroll()) {
   .page-decor__blob {
+    /* Sólo se promueve a capa propia donde el parallax de scroll corre. */
+    will-change: transform;
     animation: linear both;
     animation-timeline: scroll(root);
   }

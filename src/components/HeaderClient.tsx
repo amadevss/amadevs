@@ -15,6 +15,10 @@ const NAV = [
   { href: "/agenda", label: "Agenda" },
 ];
 
+// En la barra de escritorio "Agenda" ya está como botón CTA, así que se
+// omite del listado de enlaces para que no quede amontonado.
+const DESKTOP_NAV = NAV.filter((item) => item.href !== "/agenda");
+
 export default function HeaderClient() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -29,9 +33,9 @@ export default function HeaderClient() {
   return (
     <header className="sticky top-0 z-50" style={{ viewTransitionName: "site-header" }}>
       <div
-        className={`mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 transition-all duration-300 sm:px-6 ${
+        className={`mx-auto flex max-w-5xl items-center justify-between gap-4 px-5 transition-all duration-300 sm:px-6 ${
           scrolled
-            ? "mt-3 mb-2 rounded-full border border-border bg-surface/85 py-2 shadow-[var(--shadow-md)] backdrop-blur-xl"
+            ? "mt-3 mb-2 rounded-full border border-border bg-surface py-2 shadow-[var(--shadow-md)]"
             : "mt-3 border border-transparent py-4"
         }`}
       >
@@ -45,12 +49,12 @@ export default function HeaderClient() {
           amadevs
         </Link>
 
-        <nav className="hidden items-center gap-0.5 md:flex">
-          {NAV.map((item) => (
+        <nav className="hidden items-center gap-1 lg:flex">
+          {DESKTOP_NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-full px-2.5 py-1.5 text-sm font-medium text-muted transition hover:bg-primary-soft hover:text-fg"
+              className="rounded-full px-3 py-2 text-sm font-medium text-muted transition hover:bg-primary-soft hover:text-fg"
             >
               {item.label}
             </Link>
@@ -58,8 +62,6 @@ export default function HeaderClient() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <SocialLinks className="hidden lg:flex" btnClass="h-8 w-8" iconClass="h-[15px] w-[15px]" />
-          <span className="hidden h-5 w-px bg-border-strong lg:block" />
           <Link
             href="/agenda"
             className="hidden shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] sm:inline-flex"
@@ -73,7 +75,7 @@ export default function HeaderClient() {
             aria-label="Abrir menú"
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border-strong bg-surface md:hidden"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border-strong bg-surface lg:hidden"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               {open ? (
@@ -87,8 +89,8 @@ export default function HeaderClient() {
       </div>
 
       {open && (
-        <div className="mx-auto mt-1 max-w-5xl px-5 md:hidden">
-          <nav className="flex flex-col gap-1 rounded-2xl border border-border bg-surface/95 p-2 shadow-[var(--shadow-lg)] backdrop-blur-xl">
+        <div className="mx-auto mt-1 max-w-5xl px-5 lg:hidden">
+          <nav className="flex flex-col gap-1 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-lg)]">
             {NAV.map((item) => (
               <Link
                 key={item.href}
