@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import BookingWizard from "@/components/agenda/BookingWizard";
 import GroupQuoteCard from "@/components/agenda/GroupQuoteCard";
 import { BUSINESS_TIMEZONE } from "@/lib/agenda/config";
@@ -27,10 +28,12 @@ export default async function AgendaPage() {
           Reserva una sesión
         </h1>
         <p className="mt-3 text-[15px] leading-relaxed text-muted">
-          Elige el tipo de sesión, un horario disponible y paga en línea. Recibes un
-          comprobante con folio para consultarlo cuando quieras en{" "}
-          <span className="font-mono">/recibo</span>.
+          Elige el tipo de sesión, un horario disponible y paga en línea. Guarda tu folio
+          para consultar el estado de tu reservación cuando quieras.
         </p>
+        <Link href="/recibo" className="btn btn-ghost mt-5">
+          Consultar reservación
+        </Link>
       </header>
 
       {services.length === 0 ? (
