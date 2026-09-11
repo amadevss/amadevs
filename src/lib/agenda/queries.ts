@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import type { Booking, BookingWithService, Service } from "./types";
+import type { Blackout, Booking, BookingWithService, PaymentWithBooking, Service } from "./types";
 
 /* ── Servicios ─────────────────────────────────────────────────────────── */
 
@@ -184,6 +184,103 @@ export async function markExpiredHolds(): Promise<number> {
     update booking set status = 'expired', hold_expires_at = null
     where status = 'pending_payment' and hold_expires_at < now()`;
   return rowCount ?? 0;
+}
+
+/* ── Dashboard (admin) ────────────────────────────────────────────────── */
+
+/** Todas las reservas, más recientes primero. El dashboard filtra por pestaña en el cliente. */
+export async function listBookingsForDashboard(limit = 500): Promise<BookingWithService[]> {
+  const { rows } = await sql<BookingWithService>`
+    select b.*, s.name as service_name, s.slug as service_slug
+    from booking b join service s on s.id = b.service_id
+    order by b.starts_at desc
+    limit ${limit}`;
+  return rows;
+}
+
+export interface CreateManualBookingArgs {
+  reference: string;
+  serviceId: string;
+  startsAt: string; // ISO UTC
+  endsAt: string;
+  amountCents: number;
+  currency: string;
+  customer: {
+    name: string;
+    email: string;
+    company?: string | null;
+    note?: string | null;
+    timezone: string;
+  };
+}
+
+/** Reserva colocada a mano desde el dashboard: queda confirmada de una vez, sin Stripe. */
+export async function createManualBooking(a: CreateManualBookingArgs): Promise<Booking> {
+  const { rows } = await sql<Booking>`
+    insert into booking (
+      reference, service_id, customer_name, customer_email, customer_company,
+      customer_note, customer_timezone, starts_at, ends_at, status,
+      amount_cents, currency, paid_at, source
+    ) values (
+      ${a.reference}, ${a.serviceId}, ${a.customer.name}, ${a.customer.email},
+      ${a.customer.company ?? null}, ${a.customer.note ?? null}, ${a.customer.timezone},
+      ${a.startsAt}, ${a.endsAt}, 'confirmed',
+      ${a.amountCents}, ${a.currency}, now(), 'manual'
+    )
+    returning *`;
+  return rows[0];
+}
+
+/* ── Bloqueos manuales de disponibilidad ──────────────────────────────── */
+
+export const BLACKOUT_OVERLAP_CODES = new Set(["23P01"]);
+
+export async function listBlackoutsForDashboard(limit = 200): Promise<Blackout[]> {
+  const { rows } = await sql<Blackout>`
+    select id, lower(during) as starts_at, upper(during) as ends_at, reason, created_at
+    from blackout
+    order by lower(during) desc
+    limit ${limit}`;
+  return rows;
+}
+
+export async function createBlackout(args: {
+  startsAt: string;
+  endsAt: string;
+  reason: string | null;
+}): Promise<Blackout> {
+  const { rows } = await sql<Blackout>`
+    insert into blackout (during, reason)
+    values (tstzrange(${args.startsAt}, ${args.endsAt}), ${args.reason})
+    returning id, lower(during) as starts_at, upper(during) as ends_at, reason, created_at`;
+  return rows[0];
+}
+
+export async function deleteBlackout(id: string): Promise<boolean> {
+  const { rowCount } = await sql`delete from blackout where id = ${id}`;
+  return (rowCount ?? 0) > 0;
+}
+
+/** Libro mayor de pagos (tabla `payment`, la llena el webhook de Stripe). */
+export async function listPaymentsForDashboard(limit = 300): Promise<PaymentWithBooking[]> {
+  const { rows } = await sql<PaymentWithBooking>`
+    select p.id, p.booking_id, p.stripe_payment_intent_id, p.stripe_charge_id,
+           p.amount_cents, p.currency, p.status, p.receipt_url, p.created_at,
+           b.reference, b.customer_name, s.name as service_name
+    from payment p
+    join booking b on b.id = p.booking_id
+    join service s on s.id = b.service_id
+    order by p.created_at desc
+    limit ${limit}`;
+  return rows;
+}
+
+export async function cancelBookingById(id: string): Promise<Booking | null> {
+  const { rows } = await sql<Booking>`
+    update booking set status = 'canceled', canceled_at = now()
+    where id = ${id} and status in ('pending_payment', 'confirmed')
+    returning *`;
+  return rows[0] ?? null;
 }
 
 /* ── Pagos (libro mayor) ──────────────────────────────────────────────── */
