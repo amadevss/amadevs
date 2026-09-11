@@ -119,6 +119,17 @@ export async function attachCheckoutSession(
   await sql`update booking set stripe_checkout_session_id = ${sessionId} where id = ${bookingId}`;
 }
 
+/** Reintento de pago: cambia a una sesión de Stripe nueva y renueva el hold. */
+export async function resumeCheckoutSession(
+  bookingId: string,
+  sessionId: string,
+  holdExpiresAt: string,
+): Promise<void> {
+  await sql`
+    update booking set stripe_checkout_session_id = ${sessionId}, hold_expires_at = ${holdExpiresAt}
+    where id = ${bookingId} and status = 'pending_payment'`;
+}
+
 /* ── Consulta de una reserva ──────────────────────────────────────────── */
 
 export async function getBookingByReference(

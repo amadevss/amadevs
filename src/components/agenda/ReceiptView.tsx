@@ -10,6 +10,7 @@ import {
 import type { BookingWithService } from "@/lib/agenda/types";
 import PrintButton from "./PrintButton";
 import AutoRefresh from "./AutoRefresh";
+import PayNowButton from "./PayNowButton";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -110,7 +111,7 @@ export default function ReceiptView({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Ver recibo de pago de Stripe →
+                Descargar recibo de pago →
               </a>
             </p>
           ) : null}
@@ -122,10 +123,13 @@ export default function ReceiptView({
                 sesión.
               </p>
             ) : isPending ? (
-              <p className="flex flex-wrap items-center gap-2">
-                Estamos esperando la confirmación del pago.
-                {justReturnedFromStripe ? <AutoRefresh /> : null}
-              </p>
+              <div className="grid gap-3">
+                <p className="flex flex-wrap items-center gap-2">
+                  Esta reserva sigue pendiente de pago.
+                  {justReturnedFromStripe ? <AutoRefresh /> : null}
+                </p>
+                <PayNowButton reference={booking.reference} />
+              </div>
             ) : booking.status === "expired" ? (
               <p>
                 El horario apartado venció sin registrarse el pago.{" "}

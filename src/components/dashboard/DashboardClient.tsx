@@ -14,11 +14,12 @@ import ManualBookingForm, { type ManualBookingPrefill } from "./ManualBookingFor
 import CalendarView from "./CalendarView";
 import PaymentsView from "./PaymentsView";
 
-type Tab = "proximas" | "pasadas" | "canceladas" | "todas";
+type Tab = "proximas" | "espera" | "pasadas" | "canceladas" | "todas";
 type View = "lista" | "calendario" | "pagos";
 
 const TAB_LABEL: Record<Tab, string> = {
   proximas: "Próximas",
+  espera: "En espera",
   pasadas: "Pasadas",
   canceladas: "Canceladas",
   todas: "Todas",
@@ -64,6 +65,7 @@ export default function DashboardClient({
       const dead = DEAD_STATUSES.has(b.status);
       if (tab === "todas") return true;
       if (tab === "canceladas") return dead;
+      if (tab === "espera") return b.status === "pending_payment";
       if (tab === "pasadas") return !dead && starts < now;
       return !dead && starts >= now;
     });
