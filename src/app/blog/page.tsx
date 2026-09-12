@@ -14,9 +14,22 @@ type Post = {
   date: string;
   readTime: number;
   tags: string[];
+  likes: number;
+  views: number;
 };
 
 const posts: Post[] = [
+  {
+    slug: "algo-pasa",
+    title: "Algo pasa",
+    description:
+      "Una reflexión personal sobre la soledad, los momentos efímeros y las ganas de construir una versión mejor de mí mismo.",
+    date: "2026-09-11",
+    readTime: 2,
+    tags: ["Personal", "Reflexión"],
+    likes: 0,
+    views: 0,
+  },
   {
     slug: "view_transitions_nextjs",
     title: "View Transitions en Next.js: animaciones nativas entre páginas",
@@ -25,6 +38,8 @@ const posts: Post[] = [
     date: "2025-08-22",
     readTime: 6,
     tags: ["Next.js", "CSS", "Animaciones"],
+    likes: 0,
+    views: 0,
   },
   {
     slug: "firebase_realtime_database",
@@ -34,6 +49,8 @@ const posts: Post[] = [
     date: "2025-08-01",
     readTime: 8,
     tags: ["Firebase", "Realtime", "Chat"],
+    likes: 0,
+    views: 0,
   },
 ];
 
@@ -93,10 +110,34 @@ export default function BlogPage() {
 
                 <p className="mt-2 text-sm leading-relaxed text-muted">{post.description}</p>
 
-                <div className="mt-4 flex items-center gap-3 text-xs text-subtle">
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-subtle">
                   <span>{formatDate(post.date)}</span>
                   <span className="h-1 w-1 rounded-full bg-border-strong" />
                   <span>{post.readTime} min de lectura</span>
+                  <span className="h-1 w-1 rounded-full bg-border-strong" />
+                  <span className="inline-flex items-center gap-1">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21l-7.682-8.318a4.5 4.5 0 010-6.364z"
+                      />
+                    </svg>
+                    {post.likes}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {post.views}
+                  </span>
                 </div>
               </div>
             </Link>
