@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import ArticleStats from "@/components/blog/ArticleStats";
 
 export default function BlogLayout({ children }: { children: ReactNode }) {
   return (
@@ -41,6 +42,8 @@ export default function BlogLayout({ children }: { children: ReactNode }) {
           >
             {children}
           </div>
+
+          <ArticleStats />
         </div>
       </article>
     </div>

@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getAllBlogStats } from "@/lib/blog/stats";
 
 export const metadata: Metadata = {
   title: "Artículos técnicos",
   description:
     "Artículos sobre desarrollo web moderno, arquitectura, escalabilidad y herramientas por Bryan Oliveros Pérez (amadevs).",
 };
+
+export const dynamic = "force-dynamic";
 
 type Post = {
   slug: string;
@@ -14,8 +17,6 @@ type Post = {
   date: string;
   readTime: number;
   tags: string[];
-  likes: number;
-  views: number;
 };
 
 const posts: Post[] = [
@@ -27,8 +28,6 @@ const posts: Post[] = [
     date: "2026-09-11",
     readTime: 2,
     tags: ["Personal", "Reflexión"],
-    likes: 0,
-    views: 0,
   },
   {
     slug: "view_transitions_nextjs",
@@ -38,8 +37,6 @@ const posts: Post[] = [
     date: "2025-08-22",
     readTime: 6,
     tags: ["Next.js", "CSS", "Animaciones"],
-    likes: 0,
-    views: 0,
   },
   {
     slug: "firebase_realtime_database",
@@ -49,8 +46,6 @@ const posts: Post[] = [
     date: "2025-08-01",
     readTime: 8,
     tags: ["Firebase", "Realtime", "Chat"],
-    likes: 0,
-    views: 0,
   },
 ];
 
@@ -62,7 +57,9 @@ function formatDate(iso: string) {
   });
 }
 
-export default function BlogPage() {
+export default async function BlogPage() {
+  const stats = await getAllBlogStats();
+
   return (
     <section className="mx-auto max-w-3xl py-12 sm:py-16">
       <header className="mb-10">
@@ -124,7 +121,7 @@ export default function BlogPage() {
                         d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21l-7.682-8.318a4.5 4.5 0 010-6.364z"
                       />
                     </svg>
-                    {post.likes}
+                    {stats[post.slug]?.likes ?? 0}
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,7 +133,7 @@ export default function BlogPage() {
                       />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    {post.views}
+                    {stats[post.slug]?.views ?? 0}
                   </span>
                 </div>
               </div>
