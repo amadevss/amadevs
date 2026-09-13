@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { DASHBOARD_COOKIE, isValidSessionToken } from "@/lib/dashboardAuth";
-import { createBlogPost, isValidSlug, listAllBlogPostsForDashboard, slugify } from "@/lib/blog/posts";
+import { createBlogPost, listAllBlogPostsForDashboard, normalizeBlogPostInput } from "@/lib/blog/posts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,45 +19,17 @@ export async function GET() {
   return NextResponse.json({ posts });
 }
 
-interface BlogPostInput {
-  title?: string;
-  slug?: string;
-  description?: string;
-  content?: string;
-  tags?: string;
-}
-
 export async function POST(req: NextRequest) {
   if (!(await hasSession())) return bad("No autorizado", 401);
 
-  let body: BlogPostInput;
-  try {
-    body = (await req.json()) as BlogPostInput;
-  } catch {
-    return bad("JSON inválido");
-  }
+  const body = await req.json().catch(() => null);
+  if (!body) return bad("JSON inválido");
 
-  const title = body.title?.trim();
-  const content = body.content?.trim();
-  if (!title) return bad("Falta el título");
-  if (!content) return bad("Falta el contenido");
-
-  const slug = body.slug?.trim() ? slugify(body.slug) : slugify(title);
-  if (!slug || !isValidSlug(slug)) return bad("Slug inválido");
-
-  const tags = (body.tags ?? "")
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
+  const parsed = normalizeBlogPostInput(body);
+  if (!parsed.ok) return bad(parsed.error);
 
   try {
-    const post = await createBlogPost({
-      slug,
-      title,
-      description: body.description?.trim() ?? "",
-      content,
-      tags,
-    });
+    const post = await createBlogPost(parsed.value);
     return NextResponse.json({ post });
   } catch (err) {
     const code = (err as { code?: string })?.code;

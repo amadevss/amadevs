@@ -12,9 +12,11 @@ function formatDate(iso: string) {
   });
 }
 
+type FormState = { mode: "create" } | { mode: "edit"; post: BlogPost } | null;
+
 export default function BlogAdminView({ initialPosts }: { initialPosts: BlogPost[] }) {
   const [posts, setPosts] = useState(initialPosts);
-  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<FormState>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   async function toggleHidden(post: BlogPost) {
@@ -53,17 +55,27 @@ export default function BlogAdminView({ initialPosts }: { initialPosts: BlogPost
   return (
     <div className="grid gap-6">
       <div className="flex items-center justify-end">
-        <button type="button" className="btn btn-primary" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? "Cerrar formulario" : "+ Nuevo post"}
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => setForm((f) => (f ? null : { mode: "create" }))}
+        >
+          {form ? "Cerrar formulario" : "+ Nuevo post"}
         </button>
       </div>
 
-      {showForm ? (
+      {form ? (
         <BlogAdminForm
-          onCancel={() => setShowForm(false)}
-          onCreated={(post) => {
-            setPosts((prev) => [post, ...prev]);
-            setShowForm(false);
+          key={form.mode === "edit" ? form.post.id : "create"}
+          post={form.mode === "edit" ? form.post : undefined}
+          onCancel={() => setForm(null)}
+          onSaved={(post) => {
+            setPosts((prev) =>
+              prev.some((p) => p.id === post.id)
+                ? prev.map((p) => (p.id === post.id ? post : p))
+                : [post, ...prev],
+            );
+            setForm(null);
           }}
         />
       ) : null}
@@ -106,6 +118,14 @@ export default function BlogAdminView({ initialPosts }: { initialPosts: BlogPost
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-3">
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-muted transition hover:text-fg disabled:opacity-40"
+                        disabled={busyId === post.id}
+                        onClick={() => setForm({ mode: "edit", post })}
+                      >
+                        Editar
+                      </button>
                       <button
                         type="button"
                         className="text-xs font-medium text-muted transition hover:text-fg disabled:opacity-40"

@@ -29,6 +29,41 @@ export function isValidSlug(slug: string): boolean {
   return SLUG_RE.test(slug);
 }
 
+export interface RawBlogPostInput {
+  title?: string;
+  slug?: string;
+  description?: string;
+  content?: string;
+  tags?: string;
+}
+
+export type NormalizedBlogPostInput = {
+  slug: string;
+  title: string;
+  description: string;
+  content: string;
+  tags: string[];
+};
+
+export function normalizeBlogPostInput(
+  body: RawBlogPostInput,
+): { ok: true; value: NormalizedBlogPostInput } | { ok: false; error: string } {
+  const title = body.title?.trim();
+  const content = body.content?.trim();
+  if (!title) return { ok: false, error: "Falta el título" };
+  if (!content) return { ok: false, error: "Falta el contenido" };
+
+  const slug = body.slug?.trim() ? slugify(body.slug) : slugify(title);
+  if (!slug || !isValidSlug(slug)) return { ok: false, error: "Slug inválido" };
+
+  const tags = (body.tags ?? "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  return { ok: true, value: { slug, title, description: body.description?.trim() ?? "", content, tags } };
+}
+
 export function estimateReadTime(content: string): number {
   const words = content.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 200));
@@ -67,6 +102,32 @@ export async function createBlogPost(input: {
     [input.slug, input.title, input.description, input.content, input.tags, readTime],
   );
   return rows[0];
+}
+
+export async function getBlogPostById(id: string): Promise<BlogPost | null> {
+  const { rows } = await sql<BlogPost>`select * from blog_post where id = ${id} limit 1`;
+  return rows[0] ?? null;
+}
+
+export async function updateBlogPost(
+  id: string,
+  input: {
+    slug: string;
+    title: string;
+    description: string;
+    content: string;
+    tags: string[];
+  },
+): Promise<BlogPost | null> {
+  const readTime = estimateReadTime(input.content);
+  const { rows } = await sql.query<BlogPost>(
+    `update blog_post
+     set slug = $1, title = $2, description = $3, content = $4, tags = $5, read_time = $6
+     where id = $7
+     returning *`,
+    [input.slug, input.title, input.description, input.content, input.tags, readTime, id],
+  );
+  return rows[0] ?? null;
 }
 
 export async function setBlogPostHidden(id: string, hidden: boolean): Promise<BlogPost | null> {

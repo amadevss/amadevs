@@ -4,17 +4,20 @@ import { useState, type FormEvent } from "react";
 import type { BlogPost } from "@/lib/blog/posts";
 
 export default function BlogAdminForm({
-  onCreated,
+  post,
+  onSaved,
   onCancel,
 }: {
-  onCreated: (post: BlogPost) => void;
+  post?: BlogPost;
+  onSaved: (post: BlogPost) => void;
   onCancel: () => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
-  const [content, setContent] = useState("");
+  const editing = !!post;
+  const [title, setTitle] = useState(post?.title ?? "");
+  const [slug, setSlug] = useState(post?.slug ?? "");
+  const [description, setDescription] = useState(post?.description ?? "");
+  const [tags, setTags] = useState(post?.tags.join(", ") ?? "");
+  const [content, setContent] = useState(post?.content ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,14 +28,14 @@ export default function BlogAdminForm({
     setSubmitting(true);
     setError(null);
     try {
-      const r = await fetch("/api/dashboard/blog", {
-        method: "POST",
+      const r = await fetch(editing ? `/api/dashboard/blog/${post.id}` : "/api/dashboard/blog", {
+        method: editing ? "PATCH" : "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ title, slug, description, tags, content }),
       });
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "No se pudo crear el post");
-      onCreated(j.post as BlogPost);
+      if (!r.ok) throw new Error(j.error || "No se pudo guardar el post");
+      onSaved(j.post as BlogPost);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -43,7 +46,7 @@ export default function BlogAdminForm({
   return (
     <form onSubmit={submit} className="surface-card grid gap-4 p-5 sm:p-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-base font-bold">Nuevo post</h2>
+        <h2 className="font-display text-base font-bold">{editing ? "Editar post" : "Nuevo post"}</h2>
         <button type="button" onClick={onCancel} className="text-sm text-muted transition hover:text-fg">
           Cerrar
         </button>
@@ -56,7 +59,7 @@ export default function BlogAdminForm({
         </label>
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-wide text-subtle">
-            Slug (opcional, se genera del título)
+            Slug {editing ? "" : "(opcional, se genera del título)"}
           </span>
           <input
             className="agenda-input mt-1"
@@ -103,7 +106,7 @@ export default function BlogAdminForm({
       ) : null}
 
       <button type="submit" className="btn btn-primary w-full sm:w-auto" disabled={!valid || submitting}>
-        {submitting ? "Publicando…" : "Publicar post"}
+        {submitting ? "Guardando…" : editing ? "Guardar cambios" : "Publicar post"}
       </button>
     </form>
   );
