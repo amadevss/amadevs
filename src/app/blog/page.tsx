@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getAllBlogStats } from "@/lib/blog/stats";
+import { listVisibleBlogPosts } from "@/lib/blog/posts";
 
 export const metadata: Metadata = {
   title: "Artículos técnicos",
@@ -9,45 +10,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-type Post = {
-  slug: string;
-  title: string;
-  description: string;
-  date: string;
-  readTime: number;
-  tags: string[];
-};
-
-const posts: Post[] = [
-  {
-    slug: "algo-pasa",
-    title: "Algo pasa",
-    description:
-      "Una reflexión personal sobre la soledad, los momentos efímeros y las ganas de construir una versión mejor de mí mismo.",
-    date: "2026-09-11",
-    readTime: 2,
-    tags: ["Personal", "Reflexión"],
-  },
-  {
-    slug: "view_transitions_nextjs",
-    title: "View Transitions en Next.js: animaciones nativas entre páginas",
-    description:
-      "Cómo implementar transiciones fluidas entre páginas en Next.js usando la View Transitions API nativa del navegador, sin librerías externas.",
-    date: "2025-08-22",
-    readTime: 6,
-    tags: ["Next.js", "CSS", "Animaciones"],
-  },
-  {
-    slug: "firebase_realtime_database",
-    title: "Firebase Realtime Database para chat de soporte",
-    description:
-      "Guía práctica para construir un chat de soporte en tiempo real con reglas de seguridad, presencia y typing — portable a cualquier framework.",
-    date: "2025-08-01",
-    readTime: 8,
-    tags: ["Firebase", "Realtime", "Chat"],
-  },
-];
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("es-MX", {
@@ -58,7 +20,7 @@ function formatDate(iso: string) {
 }
 
 export default async function BlogPage() {
-  const stats = await getAllBlogStats();
+  const [posts, stats] = await Promise.all([listVisibleBlogPosts(), getAllBlogStats()]);
 
   return (
     <section className="mx-auto max-w-3xl py-12 sm:py-16">
@@ -108,9 +70,9 @@ export default async function BlogPage() {
                 <p className="mt-2 text-sm leading-relaxed text-muted">{post.description}</p>
 
                 <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-subtle">
-                  <span>{formatDate(post.date)}</span>
+                  <span>{formatDate(post.published_at)}</span>
                   <span className="h-1 w-1 rounded-full bg-border-strong" />
-                  <span>{post.readTime} min de lectura</span>
+                  <span>{post.read_time} min de lectura</span>
                   <span className="h-1 w-1 rounded-full bg-border-strong" />
                   <span className="inline-flex items-center gap-1">
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

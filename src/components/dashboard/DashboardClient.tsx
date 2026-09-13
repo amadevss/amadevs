@@ -10,12 +10,14 @@ import {
   TONE_CLASS,
 } from "@/lib/agenda/format";
 import type { Blackout, BookingWithService, PaymentWithBooking, Service } from "@/lib/agenda/types";
+import type { BlogPost } from "@/lib/blog/posts";
 import ManualBookingForm, { type ManualBookingPrefill } from "./ManualBookingForm";
 import CalendarView from "./CalendarView";
 import PaymentsView from "./PaymentsView";
+import BlogAdminView from "./BlogAdminView";
 
 type Tab = "proximas" | "espera" | "pasadas" | "canceladas" | "todas";
-type View = "lista" | "calendario" | "pagos";
+type View = "lista" | "calendario" | "pagos" | "blog";
 
 const TAB_LABEL: Record<Tab, string> = {
   proximas: "Próximas",
@@ -29,6 +31,7 @@ const VIEW_LABEL: Record<View, string> = {
   lista: "Lista",
   calendario: "Calendario",
   pagos: "Pagos",
+  blog: "Blog",
 };
 
 const DEAD_STATUSES = new Set(["canceled", "expired", "refunded"]);
@@ -38,12 +41,14 @@ export default function DashboardClient({
   initialBookings,
   initialPayments,
   initialBlackouts,
+  initialBlogPosts,
   services,
   businessTimezone,
 }: {
   initialBookings: BookingWithService[];
   initialPayments: PaymentWithBooking[];
   initialBlackouts: Blackout[];
+  initialBlogPosts: BlogPost[];
   services: Service[];
   businessTimezone: string;
 }) {
@@ -130,16 +135,20 @@ export default function DashboardClient({
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <button type="button" className="btn btn-ghost" onClick={refresh} disabled={refreshing}>
-            {refreshing ? "Actualizando…" : "Actualizar"}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => (showForm ? setShowForm(false) : openManualForm())}
-          >
-            {showForm ? "Cerrar formulario" : "+ Reserva manual"}
-          </button>
+          {view !== "blog" ? (
+            <>
+              <button type="button" className="btn btn-ghost" onClick={refresh} disabled={refreshing}>
+                {refreshing ? "Actualizando…" : "Actualizar"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => (showForm ? setShowForm(false) : openManualForm())}
+              >
+                {showForm ? "Cerrar formulario" : "+ Reserva manual"}
+              </button>
+            </>
+          ) : null}
           <button
             type="button"
             className="text-sm text-muted transition hover:text-fg"
@@ -150,7 +159,7 @@ export default function DashboardClient({
         </div>
       </div>
 
-      {showForm ? (
+      {showForm && view !== "blog" ? (
         <ManualBookingForm
           key={prefillNonce}
           services={services}
@@ -175,6 +184,8 @@ export default function DashboardClient({
         />
       ) : view === "pagos" ? (
         <PaymentsView payments={payments} businessTimezone={businessTimezone} />
+      ) : view === "blog" ? (
+        <BlogAdminView initialPosts={initialBlogPosts} />
       ) : (
         <>
           <div className="flex flex-wrap gap-1">

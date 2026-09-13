@@ -9,6 +9,7 @@ import {
   listBookingsForDashboard,
   listPaymentsForDashboard,
 } from "@/lib/agenda/queries";
+import { listAllBlogPostsForDashboard } from "@/lib/blog/posts";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 
 export const metadata: Metadata = {
@@ -24,11 +25,12 @@ export default async function DashboardPage() {
     redirect("/dashboard/login?next=/dashboard");
   }
 
-  const [bookings, services, payments, blackouts] = await Promise.all([
+  const [bookings, services, payments, blackouts, blogPosts] = await Promise.all([
     listBookingsForDashboard(),
     getActiveServices(),
     listPaymentsForDashboard(),
     listBlackoutsForDashboard(),
+    listAllBlogPostsForDashboard(),
   ]);
 
   return (
@@ -44,6 +46,7 @@ export default async function DashboardPage() {
         initialBookings={bookings}
         initialPayments={payments}
         initialBlackouts={blackouts}
+        initialBlogPosts={blogPosts}
         services={services}
         businessTimezone={BUSINESS_TIMEZONE}
       />
