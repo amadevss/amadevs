@@ -616,6 +616,43 @@ body {
   font-weight: 700;
 }
 
+/* ============================================================
+   Blog / Markdown (tablas GFM y bloques ```diff)
+   ============================================================ */
+:root {
+  --diff-add-bg: rgba(16, 185, 129, 0.12);
+  --diff-add-fg: #047857;
+  --diff-remove-bg: rgba(244, 63, 94, 0.12);
+  --diff-remove-fg: #be123c;
+}
+:root.dark {
+  --diff-add-bg: rgba(16, 185, 129, 0.16);
+  --diff-add-fg: #6ee7b7;
+  --diff-remove-bg: rgba(244, 63, 94, 0.16);
+  --diff-remove-fg: #fda4af;
+}
+
+/* Permite que tablas anchas hagan scroll horizontal sin romper el layout. */
+.md-table-wrap {
+  overflow-x: auto;
+}
+.md-table-wrap > table {
+  margin: 0 !important;
+}
+
+.diff-line {
+  display: block;
+  padding-inline: 0.5em;
+}
+.diff-line-add {
+  background: var(--diff-add-bg);
+  color: var(--diff-add-fg);
+}
+.diff-line-remove {
+  background: var(--diff-remove-bg);
+  color: var(--diff-remove-fg);
+}
+
 @media print {
   header,
   footer,

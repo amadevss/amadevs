@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
+import remarkGfm from "remark-gfm";
 import { getVisibleBlogPostBySlug } from "@/lib/blog/posts";
+import { mdxComponents } from "@/components/blog/MdxComponents";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,11 @@ export default async function BlogArticlePage({
   return (
     <>
       <h1>{post.title}</h1>
-      <MDXRemote source={post.content} />
+      <MDXRemote
+        source={post.content}
+        components={mdxComponents}
+        options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+      />
     </>
   );
 }
