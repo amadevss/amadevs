@@ -20,7 +20,8 @@ export default async function CursosLayout({ children }: { children: ReactNode }
       {student ? (
         <nav className="mb-6 flex items-center justify-between gap-2 rounded-2xl border border-border bg-surface px-3 py-2 text-sm">
           <Link href={base || "/"} className="min-h-10 truncate px-1 py-2 font-medium">
-            Hola, {firstName} 👋
+            <span className="hidden sm:inline">Hola, </span>
+            {firstName}
           </Link>
           <div className="flex shrink-0 items-center gap-1">
             <Link href={`${base}/`} className="rounded-full px-3 py-2 text-muted transition hover:bg-surface-2 hover:text-fg">
