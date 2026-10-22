@@ -23,6 +23,14 @@ const DESKTOP_NAV = NAV.filter((item) => item.href !== "/agenda");
 export default function HeaderClient() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  // En cursos.<dominio> los enlaces del menú apuntan al sitio principal.
+  const [mainOrigin, setMainOrigin] = useState("");
+  const to = (href: string) => `${mainOrigin}${href}`;
+
+  useEffect(() => {
+    const host = window.location.host;
+    if (host.startsWith("cursos.")) setMainOrigin(`${window.location.protocol}//${host.slice("cursos.".length)}`);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -41,7 +49,7 @@ export default function HeaderClient() {
         }`}
       >
         <Link
-          href="/"
+          href={to("/")}
           className="group flex shrink-0 items-center gap-2.5 font-display text-[22px] font-semibold tracking-tight"
         >
         <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-purple-500 bg-clip-text text-transparent drop-shadow-[0_2px_12px_rgba(168,85,247,0.35)]">
@@ -53,7 +61,7 @@ export default function HeaderClient() {
           {DESKTOP_NAV.map((item) => (
             <Link
               key={item.href}
-              href={item.href}
+              href={to(item.href)}
               className="rounded-full px-3 py-2 text-sm font-medium text-muted transition hover:bg-primary-soft hover:text-fg"
             >
               {item.label}
@@ -63,7 +71,7 @@ export default function HeaderClient() {
 
         <div className="flex items-center gap-2"> 
           <Link
-            href="/agenda"
+            href={to("/agenda")}
             className=" shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] inline-flex"
             style={{ background: "var(--grad)" }}
           >
@@ -71,7 +79,7 @@ export default function HeaderClient() {
           </Link>
           <ThemeToggle />
           <Link
-            href="/dashboard"
+            href={to("/dashboard")}
             aria-label="Dashboard"
             className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-border-strong bg-surface text-fg shadow-[var(--shadow-sm)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
           >
@@ -101,7 +109,7 @@ export default function HeaderClient() {
             {NAV.map((item) => (
               <Link
                 key={item.href}
-                href={item.href}
+                href={to(item.href)}
                 onClick={() => setOpen(false)}
                 className="rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition hover:bg-primary-soft hover:text-fg"
               >

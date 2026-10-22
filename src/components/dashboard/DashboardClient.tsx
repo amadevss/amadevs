@@ -15,9 +15,11 @@ import ManualBookingForm, { type ManualBookingPrefill } from "./ManualBookingFor
 import CalendarView from "./CalendarView";
 import PaymentsView from "./PaymentsView";
 import BlogAdminView from "./BlogAdminView";
+import CursosAdminView from "./cursos/CursosAdminView";
+import type { CourseWithSessions } from "@/lib/cursos/queries";
 
 type Tab = "proximas" | "espera" | "pasadas" | "canceladas" | "todas";
-type View = "lista" | "calendario" | "pagos" | "blog";
+type View = "lista" | "calendario" | "pagos" | "blog" | "cursos";
 
 const TAB_LABEL: Record<Tab, string> = {
   proximas: "Próximas",
@@ -32,6 +34,7 @@ const VIEW_LABEL: Record<View, string> = {
   calendario: "Calendario",
   pagos: "Pagos",
   blog: "Blog",
+  cursos: "Cursos",
 };
 
 const DEAD_STATUSES = new Set(["canceled", "expired", "refunded"]);
@@ -42,6 +45,7 @@ export default function DashboardClient({
   initialPayments,
   initialBlackouts,
   initialBlogPosts,
+  initialCourses,
   services,
   businessTimezone,
 }: {
@@ -49,6 +53,7 @@ export default function DashboardClient({
   initialPayments: PaymentWithBooking[];
   initialBlackouts: Blackout[];
   initialBlogPosts: BlogPost[];
+  initialCourses: CourseWithSessions[];
   services: Service[];
   businessTimezone: string;
 }) {
@@ -135,7 +140,7 @@ export default function DashboardClient({
           ))}
         </div>
         <div className="flex items-center gap-3">
-          {view !== "blog" ? (
+          {view !== "blog" && view !== "cursos" ? (
             <>
               <button type="button" className="btn btn-ghost" onClick={refresh} disabled={refreshing}>
                 {refreshing ? "Actualizando…" : "Actualizar"}
@@ -159,7 +164,7 @@ export default function DashboardClient({
         </div>
       </div>
 
-      {showForm && view !== "blog" ? (
+      {showForm && view !== "blog" && view !== "cursos" ? (
         <ManualBookingForm
           key={prefillNonce}
           services={services}
@@ -186,6 +191,8 @@ export default function DashboardClient({
         <PaymentsView payments={payments} businessTimezone={businessTimezone} />
       ) : view === "blog" ? (
         <BlogAdminView initialPosts={initialBlogPosts} />
+      ) : view === "cursos" ? (
+        <CursosAdminView initialCourses={initialCourses} />
       ) : (
         <>
           <div className="flex flex-wrap gap-1">
