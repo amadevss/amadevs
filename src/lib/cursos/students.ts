@@ -180,3 +180,33 @@ export async function isEnrolled(courseId: string, studentId: string): Promise<b
     select 1 from course_enrollment where course_id = ${courseId} and student_id = ${studentId} limit 1`;
   return rows.length > 0;
 }
+
+/* ───────────── Dashboard ───────────── */
+
+export type StudentAccountRow = Student & { courses: number; submissions: number };
+
+/** Todas las cuentas de alumnos (incluye las que no están inscritas en nada). */
+export async function listAllStudents(): Promise<StudentAccountRow[]> {
+  const { rows } = await sql<StudentAccountRow>`
+    select st.id, st.email, st.full_name, st.created_at,
+      (select count(*)::int from course_enrollment e where e.student_id = st.id) as courses,
+      (select count(*)::int from course_submission x where x.student_id = st.id) as submissions
+    from student st order by st.full_name`;
+  return rows;
+}
+
+/**
+ * Elimina la cuenta con todo lo suyo (inscripciones, sesiones, asistencia,
+ * entregas). Devuelve los pathnames de sus archivos para borrarlos de Blob,
+ * o null si no existía.
+ */
+export async function deleteStudent(id: string): Promise<string[] | null> {
+  if (!isUuid(id)) return null;
+  const { rows: files } = await sql<{ pathname: string }>`
+    select f.pathname from course_submission_file f
+    join course_submission x on x.id = f.submission_id
+    where x.student_id = ${id}`;
+  const { rowCount } = await sql`delete from student where id = ${id}`;
+  if (!rowCount) return null;
+  return files.map((f) => f.pathname);
+}
