@@ -1,6 +1,4 @@
-import type { QueryResultRow } from "@vercel/postgres";
-import { db, sql as rawSql } from "@/lib/db";
-import { COURSES_SCHEMA_SQL } from "./schema";
+import { isUuid, sql } from "./sql";
 import { isValidSlug, slugify } from "@/lib/blog/posts";
 
 export type Course = {
@@ -40,49 +38,31 @@ export type CourseMaterial = CourseFile & { session_id: string; created_at: stri
 export type CourseSubmission = {
   id: string;
   session_id: string;
+  student_id: string | null;
   student_name: string;
+  student_email: string | null;
   comment: string;
   grade: string | null;
   feedback: string | null;
   created_at: string;
+  updated_at: string;
   files: CourseFile[];
 };
 
+export const ATTENDANCE_STATUSES = ["presente", "retardo", "falta", "justificada"] as const;
+export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
+
 export type SessionWithMaterials = CourseSession & { materials: CourseMaterial[]; submission_count: number };
 export type CourseWithSessions = Course & { sessions: SessionWithMaterials[] };
-
-/* ───────────── Esquema ───────────── */
-
-let schemaReady: Promise<void> | null = null;
-
-/** Crea las tablas de cursos si aún no existen (una vez por instancia). */
-function ensureSchema(): Promise<void> {
-  schemaReady ??= (async () => {
-    const { rows } = await rawSql`select to_regclass('public.course_submission_file') as t`;
-    if (!rows[0]?.t) await db.query(COURSES_SCHEMA_SQL);
-  })().catch((err) => {
-    schemaReady = null;
-    throw err;
-  });
-  return schemaReady;
-}
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-export const isUuid = (v: string) => UUID_RE.test(v);
-
-type Primitive = string | number | boolean | null | undefined;
-
-/** Igual que `sql` de @vercel/postgres, pero asegura el esquema antes. */
-async function sql<T extends QueryResultRow = QueryResultRow>(strings: TemplateStringsArray, ...values: Primitive[]) {
-  await ensureSchema();
-  return rawSql<T>(strings, ...values);
-}
 
 /* ───────────── Validación ───────────── */
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
 export type CourseInput = { slug: string; title: string; description: string; hidden: boolean };
+
+/** Rutas propias de /cursos que no pueden usarse como id de curso. */
+const RESERVED_SLUGS = new Set(["entrar", "registro", "perfil", "salir"]);
 
 function randomSlug(): string {
   return Math.random().toString(36).slice(2, 8);
@@ -94,6 +74,7 @@ export function normalizeCourseInput(body: Record<string, unknown>): Result<Cour
   const rawSlug = String(body.slug ?? "").trim();
   const slug = rawSlug ? slugify(rawSlug) : randomSlug();
   if (!isValidSlug(slug)) return { ok: false, error: "Id/slug inválido (usa letras, números y guiones)" };
+  if (RESERVED_SLUGS.has(slug)) return { ok: false, error: `"${slug}" está reservado, usa otro id` };
   return {
     ok: true,
     value: {
@@ -142,10 +123,12 @@ export function normalizeSessionInput(body: Record<string, unknown>): Result<Ses
 
 /* ───────────── Lectura pública ───────────── */
 
-export async function listVisibleCourses(): Promise<(Course & { session_count: number })[]> {
+/** Cursos visibles en los que el alumno está inscrito. */
+export async function listStudentCourses(studentId: string): Promise<(Course & { session_count: number })[]> {
   const { rows } = await sql<Course & { session_count: number }>`
     select c.*, (select count(*)::int from course_session s where s.course_id = c.id and not s.hidden) as session_count
-    from course c where not c.hidden order by c.created_at desc`;
+    from course c join course_enrollment e on e.course_id = c.id
+    where e.student_id = ${studentId} and not c.hidden order by e.created_at desc`;
   return rows;
 }
 
@@ -172,25 +155,6 @@ export async function listMaterials(sessionId: string): Promise<CourseMaterial[]
     select id, session_id, pathname, filename, content_type, size::float8 as size, created_at
     from course_material where session_id = ${sessionId} order by created_at`;
   return rows;
-}
-
-/** Sesión visible (curso y sesión no ocultos) que acepta entregas. */
-export async function getSessionOpenForSubmissions(sessionId: string): Promise<CourseSession | null> {
-  if (!isUuid(sessionId)) return null;
-  const { rows } = await sql<CourseSession>`
-    select s.* from course_session s join course c on c.id = s.course_id
-    where s.id = ${sessionId} and not s.hidden and not c.hidden and s.accepts_submissions limit 1`;
-  return rows[0] ?? null;
-}
-
-/** Material cuyo curso y sesión son visibles (para servir el archivo sin sesión). */
-export async function isMaterialPublic(pathname: string): Promise<boolean> {
-  const { rows } = await sql`
-    select 1 from course_material m
-    join course_session s on s.id = m.session_id
-    join course c on c.id = s.course_id
-    where m.pathname = ${pathname} and not s.hidden and not c.hidden limit 1`;
-  return rows.length > 0;
 }
 
 /* ───────────── Dashboard ───────────── */
@@ -290,36 +254,6 @@ export async function deleteMaterial(id: string): Promise<string | null> {
   return rows[0]?.pathname ?? null;
 }
 
-export async function createSubmission(
-  sessionId: string,
-  studentName: string,
-  comment: string,
-  files: Omit<CourseFile, "id">[],
-): Promise<string> {
-  const { rows } = await sql<{ id: string }>`
-    insert into course_submission (session_id, student_name, comment)
-    values (${sessionId}, ${studentName}, ${comment}) returning id`;
-  const id = rows[0].id;
-  for (const f of files) {
-    await sql`
-      insert into course_submission_file (submission_id, pathname, filename, content_type, size)
-      values (${id}, ${f.pathname}, ${f.filename}, ${f.content_type}, ${f.size})`;
-  }
-  return id;
-}
-
-export async function listSubmissions(sessionId: string): Promise<CourseSubmission[]> {
-  const [subs, files] = await Promise.all([
-    sql<Omit<CourseSubmission, "files">>`
-      select * from course_submission where session_id = ${sessionId} order by created_at desc`,
-    sql<CourseFile & { submission_id: string }>`
-      select f.id, f.submission_id, f.pathname, f.filename, f.content_type, f.size::float8 as size
-      from course_submission_file f join course_submission x on x.id = f.submission_id
-      where x.session_id = ${sessionId}`,
-  ]);
-  return subs.rows.map((s) => ({ ...s, files: files.rows.filter((f) => f.submission_id === s.id) }));
-}
-
 export async function updateSubmissionReview(
   id: string,
   grade: string | null,
@@ -336,4 +270,223 @@ export async function deleteSubmission(id: string): Promise<string[] | null> {
   const { rowCount } = await sql`delete from course_submission where id = ${id}`;
   if (!rowCount) return null;
   return files.map((f) => f.pathname);
+}
+
+
+/* ───────────── Alumno: entregas, asistencia, permisos ───────────── */
+
+async function attachFiles(subs: Omit<CourseSubmission, "files">[]): Promise<CourseSubmission[]> {
+  if (subs.length === 0) return [];
+  const ids = subs.map((x) => x.id);
+  const { rows } = await sql<CourseFile & { submission_id: string }>`
+    select id, submission_id, pathname, filename, content_type, size::float8 as size
+    from course_submission_file where submission_id = any(${ids as unknown as string})`;
+  return subs.map((x) => ({ ...x, files: rows.filter((f) => f.submission_id === x.id) }));
+}
+
+export async function getStudentSubmission(sessionId: string, studentId: string): Promise<CourseSubmission | null> {
+  const { rows } = await sql<Omit<CourseSubmission, "files">>`
+    select x.*, null::text as student_email from course_submission x
+    where x.session_id = ${sessionId} and x.student_id = ${studentId} limit 1`;
+  return (await attachFiles(rows))[0] ?? null;
+}
+
+/** ¿Puede el alumno enviar o reemplazar su entrega ahora? Devuelve el motivo si no. */
+export function submissionBlockedReason(session: CourseSession, existing: CourseSubmission | null): string | null {
+  if (!session.accepts_submissions) return "Esta sesión no recibe entregas";
+  if (existing?.grade) return "Tu entrega ya fue calificada";
+  const overdue = session.due_at ? new Date(session.due_at).getTime() < Date.now() : false;
+  if (overdue && existing) return "La fecha de entrega ya pasó";
+  return null;
+}
+
+/**
+ * Crea o reemplaza la entrega del alumno. Devuelve los pathnames de los
+ * archivos anteriores para borrarlos de Blob.
+ */
+export async function upsertStudentSubmission(
+  sessionId: string,
+  student: { id: string; full_name: string },
+  comment: string,
+  files: Omit<CourseFile, "id">[],
+): Promise<{ id: string; oldPathnames: string[] }> {
+  const { rows } = await sql<{ id: string }>`
+    insert into course_submission (session_id, student_id, student_name, comment)
+    values (${sessionId}, ${student.id}, ${student.full_name}, ${comment})
+    on conflict (session_id, student_id) where student_id is not null
+    do update set comment = excluded.comment, student_name = excluded.student_name, updated_at = now()
+    returning id`;
+  const id = rows[0].id;
+  const { rows: old } = await sql<{ pathname: string }>`
+    delete from course_submission_file where submission_id = ${id} returning pathname`;
+  for (const f of files) {
+    await sql`
+      insert into course_submission_file (submission_id, pathname, filename, content_type, size)
+      values (${id}, ${f.pathname}, ${f.filename}, ${f.content_type}, ${f.size})`;
+  }
+  const keep = new Set(files.map((f) => f.pathname));
+  return { id, oldPathnames: old.map((o) => o.pathname).filter((p) => !keep.has(p)) };
+}
+
+/** Sesión visible de un curso visible en el que el alumno está inscrito. */
+export async function getEnrolledSession(sessionId: string, studentId: string): Promise<CourseSession | null> {
+  if (!isUuid(sessionId)) return null;
+  const { rows } = await sql<CourseSession>`
+    select s.* from course_session s
+    join course c on c.id = s.course_id
+    join course_enrollment e on e.course_id = c.id and e.student_id = ${studentId}
+    where s.id = ${sessionId} and not s.hidden and not c.hidden limit 1`;
+  return rows[0] ?? null;
+}
+
+/** ¿El alumno puede ver este archivo? (material de su curso o su propia entrega) */
+export async function canStudentSeeFile(pathname: string, studentId: string): Promise<boolean> {
+  const { rows } = await sql`
+    select 1 from course_material m
+    join course_session s on s.id = m.session_id
+    join course c on c.id = s.course_id
+    join course_enrollment e on e.course_id = c.id and e.student_id = ${studentId}
+    where m.pathname = ${pathname} and not s.hidden and not c.hidden
+    union all
+    select 1 from course_submission_file f
+    join course_submission x on x.id = f.submission_id
+    where f.pathname = ${pathname} and x.student_id = ${studentId}
+    limit 1`;
+  return rows.length > 0;
+}
+
+export type StudentSessionStatus = {
+  session_id: string;
+  attendance: AttendanceStatus | null;
+  submitted: boolean;
+  grade: string | null;
+};
+
+/** Asistencia y estado de entrega del alumno en cada sesión de un curso. */
+export async function listStudentSessionStatus(courseId: string, studentId: string): Promise<StudentSessionStatus[]> {
+  const { rows } = await sql<StudentSessionStatus>`
+    select s.id as session_id, a.status as attendance, (x.id is not null) as submitted, x.grade
+    from course_session s
+    left join course_attendance a on a.session_id = s.id and a.student_id = ${studentId}
+    left join course_submission x on x.session_id = s.id and x.student_id = ${studentId}
+    where s.course_id = ${courseId} and not s.hidden`;
+  return rows;
+}
+
+export async function getStudentAttendance(sessionId: string, studentId: string): Promise<AttendanceStatus | null> {
+  const { rows } = await sql<{ status: AttendanceStatus }>`
+    select status from course_attendance where session_id = ${sessionId} and student_id = ${studentId}`;
+  return rows[0]?.status ?? null;
+}
+
+/** Porcentaje de asistencia: presente y retardo cuentan; justificada no cuenta en contra. */
+export function attendancePercent(statuses: (AttendanceStatus | null)[]): number | null {
+  const marked = statuses.filter((x): x is AttendanceStatus => !!x && x !== "justificada");
+  if (marked.length === 0) return null;
+  const ok = marked.filter((x) => x === "presente" || x === "retardo").length;
+  return Math.round((ok / marked.length) * 100);
+}
+
+/* ───────────── Dashboard: alumnos, asistencia, entregas ───────────── */
+
+export type CourseStudentRow = {
+  id: string;
+  email: string;
+  full_name: string;
+  enrolled_at: string;
+  presente: number;
+  retardo: number;
+  falta: number;
+  justificada: number;
+  submissions: number;
+};
+
+export async function listCourseStudents(courseId: string): Promise<CourseStudentRow[]> {
+  if (!isUuid(courseId)) return [];
+  const { rows } = await sql<CourseStudentRow>`
+    select st.id, st.email, st.full_name, e.created_at as enrolled_at,
+      count(*) filter (where a.status = 'presente')::int as presente,
+      count(*) filter (where a.status = 'retardo')::int as retardo,
+      count(*) filter (where a.status = 'falta')::int as falta,
+      count(*) filter (where a.status = 'justificada')::int as justificada,
+      (select count(*)::int from course_submission x join course_session s2 on s2.id = x.session_id
+        where x.student_id = st.id and s2.course_id = ${courseId}) as submissions
+    from course_enrollment e
+    join student st on st.id = e.student_id
+    left join course_session s on s.course_id = e.course_id
+    left join course_attendance a on a.session_id = s.id and a.student_id = st.id
+    where e.course_id = ${courseId}
+    group by st.id, e.created_at
+    order by st.full_name`;
+  return rows;
+}
+
+export type AttendanceRow = { student_id: string; full_name: string; email: string; status: AttendanceStatus | null };
+
+export async function listSessionAttendance(sessionId: string): Promise<AttendanceRow[]> {
+  if (!isUuid(sessionId)) return [];
+  const { rows } = await sql<AttendanceRow>`
+    select st.id as student_id, st.full_name, st.email, a.status
+    from course_session s
+    join course_enrollment e on e.course_id = s.course_id
+    join student st on st.id = e.student_id
+    left join course_attendance a on a.session_id = s.id and a.student_id = st.id
+    where s.id = ${sessionId}
+    order by st.full_name`;
+  return rows;
+}
+
+export async function setAttendance(sessionId: string, studentId: string, status: AttendanceStatus | null) {
+  if (status === null) {
+    await sql`delete from course_attendance where session_id = ${sessionId} and student_id = ${studentId}`;
+    return;
+  }
+  await sql`
+    insert into course_attendance (session_id, student_id, status) values (${sessionId}, ${studentId}, ${status})
+    on conflict (session_id, student_id) do update set status = excluded.status, updated_at = now()`;
+}
+
+/** Marca "presente" a todos los inscritos que aún no tienen asistencia en la sesión. */
+export async function markAllPresent(sessionId: string): Promise<void> {
+  await sql`
+    insert into course_attendance (session_id, student_id, status)
+    select s.id, e.student_id, 'presente' from course_session s
+    join course_enrollment e on e.course_id = s.course_id
+    where s.id = ${sessionId}
+    on conflict (session_id, student_id) do nothing`;
+}
+
+export async function listSubmissions(sessionId: string): Promise<CourseSubmission[]> {
+  if (!isUuid(sessionId)) return [];
+  const { rows } = await sql<Omit<CourseSubmission, "files">>`
+    select x.*, st.email as student_email from course_submission x
+    left join student st on st.id = x.student_id
+    where x.session_id = ${sessionId} order by x.updated_at desc`;
+  return attachFiles(rows);
+}
+
+export async function courseExists(id: string): Promise<boolean> {
+  if (!isUuid(id)) return false;
+  const { rows } = await sql`select 1 from course where id = ${id} limit 1`;
+  return rows.length > 0;
+}
+
+export type ProfileCourse = Course & {
+  sessions: { id: string; position: number; title: string; attendance: AttendanceStatus | null; grade: string | null; submitted: boolean; accepts_submissions: boolean }[];
+};
+
+/** Resumen para el perfil del alumno: por curso, asistencia y calificaciones. */
+export async function getStudentProfile(studentId: string): Promise<ProfileCourse[]> {
+  const courses = await listStudentCourses(studentId);
+  if (courses.length === 0) return [];
+  const ids = courses.map((c) => c.id);
+  const { rows } = await sql<ProfileCourse["sessions"][number] & { course_id: string }>`
+    select s.id, s.course_id, s.position, s.title, s.accepts_submissions,
+           a.status as attendance, x.grade, (x.id is not null) as submitted
+    from course_session s
+    left join course_attendance a on a.session_id = s.id and a.student_id = ${studentId}
+    left join course_submission x on x.session_id = s.id and x.student_id = ${studentId}
+    where s.course_id = any(${ids as unknown as string}) and not s.hidden
+    order by s.position`;
+  return courses.map((c) => ({ ...c, sessions: rows.filter((r) => r.course_id === c.id) }));
 }

@@ -5,6 +5,7 @@ import type { Course, CourseSession, CourseWithSessions } from "@/lib/cursos/que
 import { COURSES_PUBLIC_ORIGIN } from "@/lib/cursos/shared";
 import { CourseForm, SessionForm } from "./CourseForms";
 import SessionPanel from "./SessionPanel";
+import StudentsPanel from "./StudentsPanel";
 
 type CourseFormState = { mode: "create" } | { mode: "edit"; course: Course } | null;
 type SessionFormState = { mode: "create" } | { mode: "edit"; session: CourseSession } | null;
@@ -23,12 +24,15 @@ function Badge({ hidden }: { hidden: boolean }) {
   );
 }
 
-const linkBtn = "text-xs font-medium text-muted transition hover:text-fg";
-const dangerBtn = "text-xs font-medium text-rose-600 hover:underline dark:text-rose-400";
+const actionBtn =
+  "inline-flex min-h-10 items-center rounded-lg px-2.5 text-xs font-medium text-muted transition hover:bg-surface-2 hover:text-fg";
+const dangerBtn =
+  "inline-flex min-h-10 items-center rounded-lg px-2.5 text-xs font-medium text-rose-600 transition hover:bg-rose-500/10 dark:text-rose-400";
 
 export default function CursosAdminView({ initialCourses }: { initialCourses: CourseWithSessions[] }) {
   const [courses, setCourses] = useState(initialCourses);
   const [selectedId, setSelectedId] = useState<string | null>(initialCourses[0]?.id ?? null);
+  const [tab, setTab] = useState<"sesiones" | "alumnos">("sesiones");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [courseForm, setCourseForm] = useState<CourseFormState>(null);
   const [sessionForm, setSessionForm] = useState<SessionFormState>(null);
@@ -42,7 +46,7 @@ export default function CursosAdminView({ initialCourses }: { initialCourses: Co
   }
 
   async function removeCourse(c: CourseWithSessions) {
-    if (!window.confirm(`¿Eliminar el curso "${c.title}" con todas sus sesiones, materiales y entregas?`)) return;
+    if (!window.confirm(`¿Eliminar el curso "${c.title}" con todas sus sesiones, materiales, entregas y asistencia?`)) return;
     const r = await fetch(`/api/dashboard/cursos/${c.id}`, { method: "DELETE" });
     if (!r.ok) return window.alert("No se pudo eliminar el curso");
     setCourses((prev) => prev.filter((x) => x.id !== c.id));
@@ -50,7 +54,7 @@ export default function CursosAdminView({ initialCourses }: { initialCourses: Co
   }
 
   async function removeSession(s: CourseSession) {
-    if (!window.confirm(`¿Eliminar la sesión "${s.title}" con sus materiales y entregas?`)) return;
+    if (!window.confirm(`¿Eliminar la sesión "${s.title}" con sus materiales, entregas y asistencia?`)) return;
     const r = await fetch(`/api/dashboard/cursos/sesiones/${s.id}`, { method: "DELETE" });
     if (!r.ok) return window.alert("No se pudo eliminar la sesión");
     patchCourse(s.course_id, (c) => ({ ...c, sessions: c.sessions.filter((x) => x.id !== s.id) }));
@@ -58,41 +62,47 @@ export default function CursosAdminView({ initialCourses }: { initialCourses: Co
   }
 
   async function copyLink(url: string) {
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      window.prompt("Copia el enlace:", url);
+    }
   }
 
   return (
-    <div className="grid gap-6">
-      {/* Cursos */}
-      <div className="flex flex-wrap items-center gap-2">
-        {courses.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            onClick={() => {
-              setSelectedId(c.id);
-              setSessionId(null);
-              setSessionForm(null);
-              setCourseForm(null);
-            }}
-            className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${
-              c.id === selectedId
-                ? "border-primary bg-primary-soft text-primary"
-                : "border-border text-muted hover:bg-surface-2"
-            }`}
-          >
-            {c.title}
-            {c.hidden ? " · oculto" : ""}
-          </button>
-        ))}
+    <div className="grid gap-5">
+      {/* Cursos: en celular se desplazan de lado */}
+      <div className="flex items-center gap-2">
+        <div className="-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 pb-1">
+          {courses.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => {
+                setSelectedId(c.id);
+                setSessionId(null);
+                setSessionForm(null);
+                setCourseForm(null);
+              }}
+              className={`min-h-10 shrink-0 rounded-full border px-3.5 text-sm font-medium transition ${
+                c.id === selectedId
+                  ? "border-primary bg-primary-soft text-primary"
+                  : "border-border text-muted hover:bg-surface-2"
+              }`}
+            >
+              {c.title}
+              {c.hidden ? " · oculto" : ""}
+            </button>
+          ))}
+        </div>
         <button
           type="button"
-          className="btn btn-primary ml-auto"
+          className="btn btn-primary min-h-10 shrink-0 px-4"
           onClick={() => setCourseForm((f) => (f?.mode === "create" ? null : { mode: "create" }))}
         >
-          + Nuevo curso
+          + Curso
         </button>
       </div>
 
@@ -120,14 +130,14 @@ export default function CursosAdminView({ initialCourses }: { initialCourses: Co
       ) : (
         <>
           {/* Detalle del curso */}
-          <section className="surface-card grid gap-3 p-5 sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+          <section className="surface-card grid gap-3 p-4 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <h2 className="font-display text-xl font-bold">{course.title}</h2>
                 <Badge hidden={course.hidden} />
               </div>
-              <div className="flex gap-4">
-                <button type="button" className={linkBtn} onClick={() => setCourseForm({ mode: "edit", course })}>
+              <div className="flex">
+                <button type="button" className={actionBtn} onClick={() => setCourseForm({ mode: "edit", course })}>
                   Editar
                 </button>
                 <button type="button" className={dangerBtn} onClick={() => removeCourse(course)}>
@@ -136,119 +146,136 @@ export default function CursosAdminView({ initialCourses }: { initialCourses: Co
               </div>
             </div>
             {course.description ? <p className="text-sm text-muted">{course.description}</p> : null}
-            <div className="flex flex-wrap items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-sm">
-              <span className="text-subtle">Enlace para alumnos:</span>
+            <div className="grid gap-2 rounded-xl bg-surface-2 p-3 text-sm sm:flex sm:items-center">
+              <span className="text-xs text-subtle">Enlace de inscripción:</span>
               <a
                 href={`/cursos/${course.slug}`}
                 target="_blank"
                 rel="noreferrer"
-                className="font-mono text-primary-ink hover:underline"
+                className="break-all font-mono text-primary-ink hover:underline"
               >
                 {COURSES_PUBLIC_ORIGIN.replace("https://", "")}/{course.slug}
               </a>
               <button
                 type="button"
-                className={`${linkBtn} ml-auto`}
+                className="btn btn-ghost min-h-10 sm:ml-auto"
                 onClick={() => copyLink(`${COURSES_PUBLIC_ORIGIN}/${course.slug}`)}
               >
-                {copied ? "Copiado ✓" : "Copiar"}
+                {copied ? "Copiado ✓" : "Copiar enlace"}
               </button>
             </div>
           </section>
 
-          {/* Sesiones */}
-          <section className="grid gap-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display text-base font-bold">Sesiones ({course.sessions.length})</h3>
+          <div className="grid grid-cols-2 gap-1 rounded-full border border-border bg-surface p-1 sm:w-80">
+            {(["sesiones", "alumnos"] as const).map((t) => (
               <button
+                key={t}
                 type="button"
-                className="btn btn-ghost"
-                onClick={() => setSessionForm((f) => (f?.mode === "create" ? null : { mode: "create" }))}
+                onClick={() => setTab(t)}
+                className={`min-h-10 rounded-full text-sm font-medium transition ${
+                  tab === t ? "bg-primary-soft text-primary" : "text-muted hover:bg-surface-2"
+                }`}
               >
-                + Nueva sesión
+                {t === "sesiones" ? `Sesiones (${course.sessions.length})` : "Alumnos"}
               </button>
-            </div>
+            ))}
+          </div>
 
-            {sessionForm ? (
-              <SessionForm
-                key={sessionForm.mode === "edit" ? sessionForm.session.id : "create"}
-                courseId={course.id}
-                session={sessionForm.mode === "edit" ? sessionForm.session : undefined}
-                nextPosition={Math.max(0, ...course.sessions.map((s) => s.position)) + 1}
-                onCancel={() => setSessionForm(null)}
-                onSaved={(saved) => {
-                  patchCourse(course.id, (c) => {
-                    const exists = c.sessions.find((s) => s.id === saved.id);
-                    const sessions = exists
-                      ? c.sessions.map((s) => (s.id === saved.id ? { ...s, ...saved } : s))
-                      : [...c.sessions, { ...saved, materials: [], submission_count: 0 }];
-                    return { ...c, sessions: sessions.sort((a, b) => a.position - b.position) };
-                  });
-                  setSessionId(saved.id);
-                  setSessionForm(null);
-                }}
-              />
-            ) : null}
+          {tab === "alumnos" ? (
+            <StudentsPanel key={course.id} courseId={course.id} />
+          ) : (
+            <>
+              <section className="grid gap-3">
+                <button
+                  type="button"
+                  className="btn btn-ghost min-h-11 w-full sm:w-auto sm:justify-self-end"
+                  onClick={() => setSessionForm((f) => (f?.mode === "create" ? null : { mode: "create" }))}
+                >
+                  + Nueva sesión
+                </button>
 
-            {course.sessions.length === 0 ? (
-              <p className="text-sm text-subtle">Sin sesiones todavía.</p>
-            ) : (
-              <ul className="surface-card divide-y divide-border">
-                {course.sessions.map((s) => (
-                  <li
-                    key={s.id}
-                    className={`flex flex-wrap items-center gap-3 px-4 py-3 ${s.id === sessionId ? "bg-primary-soft/40" : ""}`}
-                  >
-                    <button
-                      type="button"
-                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                      onClick={() => setSessionId(s.id === sessionId ? null : s.id)}
-                    >
-                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-xs font-bold">
-                        {s.position}
-                      </span>
-                      <span className="min-w-0 truncate font-medium">{s.title}</span>
-                      <span className="shrink-0 text-xs text-subtle">
-                        {s.materials.length} mat. · {s.accepts_submissions ? `${s.submission_count} entregas` : "sin entregas"}
-                      </span>
-                    </button>
-                    <Badge hidden={s.hidden} />
-                    <div className="flex gap-4">
-                      <a
-                        href={`/cursos/${course.slug}/${s.position}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className={linkBtn}
-                      >
-                        Ver
-                      </a>
-                      <button type="button" className={linkBtn} onClick={() => setSessionForm({ mode: "edit", session: s })}>
-                        Editar
-                      </button>
-                      <button type="button" className={dangerBtn} onClick={() => removeSession(s)}>
-                        Eliminar
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                {sessionForm ? (
+                  <SessionForm
+                    key={sessionForm.mode === "edit" ? sessionForm.session.id : "create"}
+                    courseId={course.id}
+                    session={sessionForm.mode === "edit" ? sessionForm.session : undefined}
+                    nextPosition={Math.max(0, ...course.sessions.map((s) => s.position)) + 1}
+                    onCancel={() => setSessionForm(null)}
+                    onSaved={(saved) => {
+                      patchCourse(course.id, (c) => {
+                        const exists = c.sessions.find((s) => s.id === saved.id);
+                        const sessions = exists
+                          ? c.sessions.map((s) => (s.id === saved.id ? { ...s, ...saved } : s))
+                          : [...c.sessions, { ...saved, materials: [], submission_count: 0 }];
+                        return { ...c, sessions: sessions.sort((a, b) => a.position - b.position) };
+                      });
+                      setSessionId(saved.id);
+                      setSessionForm(null);
+                    }}
+                  />
+                ) : null}
 
-          {session ? (
-            <SessionPanel
-              key={session.id}
-              session={session}
-              onMaterialsChange={(materials) =>
-                patchCourse(course.id, (c) => ({
-                  ...c,
-                  sessions: c.sessions.map((s) => (s.id === session.id ? { ...s, materials } : s)),
-                }))
-              }
-            />
-          ) : course.sessions.length > 0 ? (
-            <p className="text-sm text-subtle">Toca una sesión para subir materiales y ver entregas.</p>
-          ) : null}
+                {course.sessions.length === 0 ? (
+                  <p className="text-sm text-subtle">Sin sesiones todavía.</p>
+                ) : (
+                  <ul className="surface-card divide-y divide-border overflow-hidden">
+                    {course.sessions.map((s) => (
+                      <li key={s.id} className={s.id === sessionId ? "bg-primary-soft/40" : ""}>
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-3 px-4 pb-1 pt-3 text-left"
+                          onClick={() => setSessionId(s.id === sessionId ? null : s.id)}
+                        >
+                          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-2 text-xs font-bold">
+                            {s.position}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-medium">{s.title}</span>
+                            <span className="block text-xs text-subtle">
+                              {s.materials.length} materiales ·{" "}
+                              {s.accepts_submissions ? `${s.submission_count} entregas` : "sin entregas"}
+                            </span>
+                          </span>
+                          <Badge hidden={s.hidden} />
+                        </button>
+                        <div className="flex flex-wrap justify-end px-2 pb-2">
+                          <button
+                            type="button"
+                            className={actionBtn}
+                            onClick={() => setSessionId(s.id === sessionId ? null : s.id)}
+                          >
+                            {s.id === sessionId ? "Cerrar" : "Asistencia y entregas"}
+                          </button>
+                          <a href={`/cursos/${course.slug}/${s.position}`} target="_blank" rel="noreferrer" className={actionBtn}>
+                            Ver
+                          </a>
+                          <button type="button" className={actionBtn} onClick={() => setSessionForm({ mode: "edit", session: s })}>
+                            Editar
+                          </button>
+                          <button type="button" className={dangerBtn} onClick={() => removeSession(s)}>
+                            Eliminar
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              {session ? (
+                <SessionPanel
+                  key={session.id}
+                  session={session}
+                  onMaterialsChange={(materials) =>
+                    patchCourse(course.id, (c) => ({
+                      ...c,
+                      sessions: c.sessions.map((s) => (s.id === session.id ? { ...s, materials } : s)),
+                    }))
+                  }
+                />
+              ) : null}
+            </>
+          )}
         </>
       )}
     </div>

@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { CourseMaterial, CourseSubmission, SessionWithMaterials } from "@/lib/cursos/queries";
-import { formatDateTime } from "@/lib/cursos/shared";
+import type {
+  AttendanceRow,
+  AttendanceStatus,
+  CourseMaterial,
+  CourseSubmission,
+  SessionWithMaterials,
+} from "@/lib/cursos/queries";
+import { ATTENDANCE_LABEL, ATTENDANCE_TONE, formatDateTime } from "@/lib/cursos/shared";
 import { uploadCourseFile } from "@/lib/cursos/upload";
 import FileList from "@/components/cursos/FileList";
 
-/** Materiales (subir/quitar) y entregas (ver/calificar/borrar) de una sesión. */
+/** Asistencia, materiales (subir/quitar) y entregas (ver/calificar/borrar) de una sesión. */
 export default function SessionPanel({
   session,
   onMaterialsChange,
@@ -15,7 +21,8 @@ export default function SessionPanel({
   onMaterialsChange: (materials: CourseMaterial[]) => void;
 }) {
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-5">
+      <Attendance sessionId={session.id} />
       <Materials session={session} onChange={onMaterialsChange} />
       {session.accepts_submissions || session.submission_count > 0 ? <Submissions sessionId={session.id} /> : null}
     </div>
@@ -72,7 +79,7 @@ function Materials({
     <section className="surface-card grid gap-4 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-display text-base font-bold">Materiales ({session.materials.length})</h3>
-        <label className={`btn btn-ghost cursor-pointer ${uploading ? "pointer-events-none opacity-60" : ""}`}>
+        <label className={`btn btn-ghost min-h-11 w-full cursor-pointer sm:w-auto ${uploading ? "pointer-events-none opacity-60" : ""}`}>
           {uploading ? `Subiendo ${uploading.name} · ${Math.round(uploading.pct)}%` : "+ Subir archivos"}
           <input ref={inputRef} type="file" multiple className="sr-only" onChange={(e) => addFiles(e.target.files)} />
         </label>
@@ -164,8 +171,11 @@ function SubmissionItem({ sub, onDelete }: { sub: CourseSubmission; onDelete: ()
   return (
     <li className="grid gap-3 rounded-xl border border-border p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="font-semibold">{sub.student_name}</span>
-        <span className="text-xs text-subtle">{formatDateTime(sub.created_at)}</span>
+        <span className="min-w-0">
+          <span className="block font-semibold">{sub.student_name}</span>
+          {sub.student_email ? <span className="block break-all text-xs text-subtle">{sub.student_email}</span> : null}
+        </span>
+        <span className="text-xs text-subtle">{formatDateTime(sub.updated_at)}</span>
       </div>
       {sub.comment ? <p className="whitespace-pre-line text-sm text-muted">{sub.comment}</p> : null}
       <FileList files={sub.files} />
@@ -193,12 +203,12 @@ function SubmissionItem({ sub, onDelete }: { sub: CourseSubmission; onDelete: ()
           />
         </label>
         <div className="flex items-center gap-3">
-          <button type="button" className="btn btn-ghost" onClick={save} disabled={saved === "saving"}>
+          <button type="button" className="btn btn-ghost min-h-10" onClick={save} disabled={saved === "saving"}>
             {saved === "saving" ? "Guardando…" : saved === "ok" ? "Guardado ✓" : "Guardar"}
           </button>
           <button
             type="button"
-            className="text-xs font-medium text-rose-600 hover:underline dark:text-rose-400"
+            className="min-h-10 px-2 text-xs font-medium text-rose-600 hover:underline dark:text-rose-400"
             onClick={onDelete}
           >
             Eliminar
@@ -206,5 +216,97 @@ function SubmissionItem({ sub, onDelete }: { sub: CourseSubmission; onDelete: ()
         </div>
       </div>
     </li>
+  );
+}
+
+const STATUS_ORDER: AttendanceStatus[] = ["presente", "retardo", "falta", "justificada"];
+
+/** Pase de lista: un toque por alumno; tocar el estado activo lo quita. */
+function Attendance({ sessionId }: { sessionId: string }) {
+  const [rows, setRows] = useState<AttendanceRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/dashboard/cursos/sesiones/${sessionId}/asistencia`)
+      .then(async (r) => {
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "No se pudo cargar la asistencia");
+        setRows(j.rows as AttendanceRow[]);
+      })
+      .catch((err: Error) => setError(err.message));
+  }, [sessionId]);
+
+  async function mark(studentId: string, status: AttendanceStatus | null) {
+    const before = rows;
+    setRows((prev) => prev?.map((r) => (r.student_id === studentId ? { ...r, status } : r)) ?? null);
+    const r = await fetch(`/api/dashboard/cursos/sesiones/${sessionId}/asistencia`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ studentId, status }),
+    });
+    if (!r.ok) {
+      setRows(before);
+      window.alert("No se pudo guardar la asistencia");
+    }
+  }
+
+  async function allPresent() {
+    setBusy(true);
+    const r = await fetch(`/api/dashboard/cursos/sesiones/${sessionId}/asistencia`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ all: true }),
+    });
+    const j = await r.json().catch(() => ({}));
+    setBusy(false);
+    if (!r.ok) return window.alert(j.error || "No se pudo guardar la asistencia");
+    setRows(j.rows as AttendanceRow[]);
+  }
+
+  const pending = rows?.filter((r) => !r.status).length ?? 0;
+
+  return (
+    <section className="surface-card grid gap-4 p-4 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="font-display text-base font-bold">
+          Asistencia {rows ? `(${rows.length - pending}/${rows.length})` : ""}
+        </h3>
+        {rows && pending > 0 ? (
+          <button type="button" className="btn btn-ghost min-h-10 w-full sm:w-auto" onClick={allPresent} disabled={busy}>
+            {busy ? "Guardando…" : `Marcar ${pending} sin registro como presentes`}
+          </button>
+        ) : null}
+      </div>
+      {error ? <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p> : null}
+      {!rows ? (
+        <p className="text-sm text-subtle">Cargando…</p>
+      ) : rows.length === 0 ? (
+        <p className="text-sm text-subtle">Aún no hay alumnos inscritos en este curso.</p>
+      ) : (
+        <ul className="grid gap-3">
+          {rows.map((r) => (
+            <li key={r.student_id} className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
+              <span className="min-w-0 truncate text-sm font-medium">{r.full_name}</span>
+              <div className="grid grid-cols-4 gap-1">
+                {STATUS_ORDER.map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    aria-pressed={r.status === st}
+                    onClick={() => mark(r.student_id, r.status === st ? null : st)}
+                    className={`min-h-10 rounded-lg border px-2 text-xs font-semibold transition ${
+                      r.status === st ? ATTENDANCE_TONE[st] : "border-border text-subtle hover:bg-surface-2"
+                    }`}
+                  >
+                    {ATTENDANCE_LABEL[st]}
+                  </button>
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

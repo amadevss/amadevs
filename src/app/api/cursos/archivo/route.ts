@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { issueSignedToken, presignUrl } from "@vercel/blob";
-import { isMaterialPublic } from "@/lib/cursos/queries";
+import { canStudentSeeFile } from "@/lib/cursos/queries";
 import { hasDashboardSession } from "@/lib/cursos/server";
+import { getCurrentStudent } from "@/lib/cursos/students";
 import { MATERIAL_PREFIX, SUBMISSION_PREFIX } from "@/lib/cursos/shared";
 
 export const runtime = "nodejs";
@@ -12,18 +13,20 @@ const LINK_TTL_MS = 30 * 60 * 1000; // el enlace firmado dura 30 min
 /**
  * Sirve un archivo privado de Blob: valida permisos y redirige a una URL
  * firmada temporal (así no pasa por la función y no hay límite de tamaño).
- * - Materiales: públicos si su curso y sesión están visibles.
- * - Entregas: solo con sesión de dashboard.
+ * - Admin (dashboard): todo.
+ * - Alumno: materiales de sus cursos y sus propias entregas.
  */
 export async function GET(req: NextRequest) {
   const pathname = req.nextUrl.searchParams.get("p") ?? "";
   const download = req.nextUrl.searchParams.get("dl") === "1";
 
   let allowed = false;
-  if (pathname.startsWith(`${MATERIAL_PREFIX}/`)) {
-    allowed = (await isMaterialPublic(pathname)) || (await hasDashboardSession());
-  } else if (pathname.startsWith(`${SUBMISSION_PREFIX}/`)) {
-    allowed = await hasDashboardSession();
+  if (pathname.startsWith(`${MATERIAL_PREFIX}/`) || pathname.startsWith(`${SUBMISSION_PREFIX}/`)) {
+    if (await hasDashboardSession()) allowed = true;
+    else {
+      const student = await getCurrentStudent();
+      allowed = !!student && (await canStudentSeeFile(pathname, student.id));
+    }
   }
   if (!allowed) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
 

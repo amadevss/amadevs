@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
-import { getSessionOpenForSubmissions, sessionExists } from "@/lib/cursos/queries";
+import {
+  getEnrolledSession,
+  getStudentSubmission,
+  sessionExists,
+  submissionBlockedReason,
+} from "@/lib/cursos/queries";
 import { hasDashboardSession } from "@/lib/cursos/server";
+import { getCurrentStudent } from "@/lib/cursos/students";
 import {
   MAX_MATERIAL_BYTES,
   MAX_SUBMISSION_BYTES,
@@ -14,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * Emite tokens para que el navegador suba directo a Vercel Blob (privado).
- * - kind "entrega": cualquiera con el enlace, solo a sesiones abiertas.
+ * - kind "entrega": alumno con sesión, inscrito, y con la entrega abierta.
  * - kind "material": solo con sesión de dashboard.
  * El registro en la base de datos se hace después con otra llamada.
  */
@@ -38,10 +44,13 @@ export async function POST(req: NextRequest) {
         }
 
         if (payload.kind === "entrega") {
-          if (!(await getSessionOpenForSubmissions(sessionId))) {
-            throw new Error("Esta sesión no recibe entregas");
-          }
-          if (!pathname.startsWith(submissionFolder(sessionId))) throw new Error("Ruta inválida");
+          const student = await getCurrentStudent();
+          if (!student) throw new Error("Inicia sesión para entregar");
+          const session = await getEnrolledSession(sessionId, student.id);
+          if (!session) throw new Error("No estás inscrito en este curso");
+          const blocked = submissionBlockedReason(session, await getStudentSubmission(session.id, student.id));
+          if (blocked) throw new Error(blocked);
+          if (!pathname.startsWith(submissionFolder(sessionId, student.id))) throw new Error("Ruta inválida");
           return { addRandomSuffix: true, maximumSizeInBytes: MAX_SUBMISSION_BYTES };
         }
 

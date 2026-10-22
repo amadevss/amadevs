@@ -8,7 +8,8 @@ export const MAX_SUBMISSION_BYTES = 500 * 1024 * 1024; // 500 MB por archivo
 export const MAX_MATERIAL_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB por archivo
 
 export const materialFolder = (sessionId: string) => `${MATERIAL_PREFIX}/${sessionId}/`;
-export const submissionFolder = (sessionId: string) => `${SUBMISSION_PREFIX}/${sessionId}/`;
+export const submissionFolder = (sessionId: string, studentId: string) =>
+  `${SUBMISSION_PREFIX}/${sessionId}/${studentId}/`;
 
 /** Nombre de archivo seguro para usarlo dentro de un pathname de Blob. */
 export function safeFilename(name: string): string {
@@ -57,3 +58,17 @@ export function toLocalInput(iso: string | null): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+export const ATTENDANCE_LABEL: Record<string, string> = {
+  presente: "Presente",
+  retardo: "Retardo",
+  falta: "Falta",
+  justificada: "Justificada",
+};
+
+export const ATTENDANCE_TONE: Record<string, string> = {
+  presente: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  retardo: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  falta: "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400",
+  justificada: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400",
+};

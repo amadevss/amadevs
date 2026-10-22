@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getVisibleCourse, getVisibleSession, listMaterials, listVisibleSessions } from "@/lib/cursos/queries";
+import { notFound, redirect } from "next/navigation";
+import {
+  getStudentAttendance,
+  getStudentSubmission,
+  getVisibleCourse,
+  getVisibleSession,
+  listMaterials,
+  listVisibleSessions,
+  submissionBlockedReason,
+} from "@/lib/cursos/queries";
 import { coursesBasePath } from "@/lib/cursos/server";
-import { formatDateTime } from "@/lib/cursos/shared";
+import { getCurrentStudent, isEnrolled } from "@/lib/cursos/students";
+import { ATTENDANCE_LABEL, ATTENDANCE_TONE, formatDateTime } from "@/lib/cursos/shared";
 import Markdown from "@/components/cursos/Markdown";
 import FileList from "@/components/cursos/FileList";
-import SubmissionForm from "@/components/cursos/SubmissionForm";
+import SubmissionPanel from "@/components/cursos/SubmissionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -33,10 +42,15 @@ export default async function SesionPage({ params }: Props) {
   if (!data) notFound();
   const { course, session } = data;
 
-  const [materials, sessions, base] = await Promise.all([
+  // Solo alumnos inscritos; si no, al curso (ahí se registra o inscribe).
+  const [student, base] = await Promise.all([getCurrentStudent(), coursesBasePath()]);
+  if (!student || !(await isEnrolled(course.id, student.id))) redirect(`${base}/${course.slug}`);
+
+  const [materials, sessions, submission, attendance] = await Promise.all([
     listMaterials(session.id),
     listVisibleSessions(course.id),
-    coursesBasePath(),
+    getStudentSubmission(session.id, student.id),
+    getStudentAttendance(session.id, student.id),
   ]);
   const idx = sessions.findIndex((s) => s.id === session.id);
   const prev = sessions[idx - 1];
@@ -47,27 +61,32 @@ export default async function SesionPage({ params }: Props) {
     <>
       <Link
         href={`${base}/${course.slug}`}
-        className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-subtle transition-colors hover:text-primary-ink"
+        className="mb-4 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-subtle transition-colors hover:text-primary-ink"
       >
         ← {course.title}
       </Link>
 
       <article className="surface-card overflow-hidden">
         <div className="h-1 w-full" style={{ background: "var(--grad)" }} />
-        <div className="grid gap-8 p-6 sm:p-10">
+        <div className="grid gap-6 p-5 sm:gap-8 sm:p-10">
           <header>
-            <p className="eyebrow">Sesión {session.position}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="eyebrow">Sesión {session.position}</p>
+              {attendance ? (
+                <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${ATTENDANCE_TONE[attendance]}`}>
+                  {ATTENDANCE_LABEL[attendance]}
+                </span>
+              ) : null}
+            </div>
             <h1 className="mt-3 font-display text-2xl font-bold tracking-tight sm:text-3xl">{session.title}</h1>
-            {session.description ? (
-              <p className="mt-3 whitespace-pre-line text-muted">{session.description}</p>
-            ) : null}
+            {session.description ? <p className="mt-3 whitespace-pre-line text-muted">{session.description}</p> : null}
           </header>
 
           <Markdown source={session.content} />
 
           {materials.length > 0 ? (
             <section>
-              <h2 className="mb-3 font-display text-lg font-bold">Materiales</h2>
+              <h2 className="mb-3 font-display text-lg font-bold">Material de apoyo</h2>
               <FileList files={materials} />
             </section>
           ) : null}
@@ -75,30 +94,35 @@ export default async function SesionPage({ params }: Props) {
       </article>
 
       {session.accepts_submissions ? (
-        <section className="surface-card mt-6 p-6 sm:p-8">
-          <h2 className="font-display text-lg font-bold">Entregable</h2>
+        <section className="surface-card mt-5 p-5 sm:mt-6 sm:p-8">
+          <h2 className="font-display text-lg font-bold">Tu entregable</h2>
           {session.due_at ? (
             <p className={`mt-1 text-sm ${overdue ? "text-rose-600 dark:text-rose-400" : "text-subtle"}`}>
               Fecha de entrega: {formatDateTime(session.due_at)}
-              {overdue ? " (vencida, aún puedes enviar)" : ""}
+              {overdue && !submission ? " (vencida, aún puedes enviar)" : ""}
             </p>
           ) : null}
           <div className="mt-5">
-            <SubmissionForm sessionId={session.id} />
+            <SubmissionPanel
+              sessionId={session.id}
+              studentId={student.id}
+              submission={submission}
+              blockedReason={submissionBlockedReason(session, submission)}
+            />
           </div>
         </section>
       ) : null}
 
-      <nav className="mt-6 flex justify-between gap-3 text-sm">
+      <nav className="mt-5 grid grid-cols-2 gap-3 text-sm sm:mt-6">
         {prev ? (
-          <Link href={`${base}/${course.slug}/${prev.position}`} className="btn btn-ghost">
+          <Link href={`${base}/${course.slug}/${prev.position}`} className="btn btn-ghost min-h-11">
             ← Sesión {prev.position}
           </Link>
         ) : (
           <span />
         )}
         {next ? (
-          <Link href={`${base}/${course.slug}/${next.position}`} className="btn btn-ghost">
+          <Link href={`${base}/${course.slug}/${next.position}`} className="btn btn-ghost min-h-11">
             Sesión {next.position} →
           </Link>
         ) : null}

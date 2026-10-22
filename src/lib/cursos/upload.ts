@@ -11,8 +11,9 @@ export async function uploadCourseFile(
   kind: "material" | "entrega",
   sessionId: string,
   onProgress?: (pct: number) => void,
+  studentId = "",
 ): Promise<UploadedFile> {
-  const folder = kind === "material" ? materialFolder(sessionId) : submissionFolder(sessionId);
+  const folder = kind === "material" ? materialFolder(sessionId) : submissionFolder(sessionId, studentId);
   const blob = await upload(`${folder}${safeFilename(file.name)}`, file, {
     access: "private",
     handleUploadUrl: "/api/cursos/upload",

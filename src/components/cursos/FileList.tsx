@@ -37,11 +37,11 @@ export default function FileList({
               <figcaption className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-subtle">
                 <span className="truncate">{f.filename}</span>
                 <span className="flex shrink-0 items-center gap-3">
-                  <a href={fileUrl(f.pathname, true)} className="font-medium text-primary-ink hover:underline">
+                  <a href={fileUrl(f.pathname, true)} className="-m-1 p-1.5 font-medium text-primary-ink hover:underline">
                     Descargar
                   </a>
                   {onDelete ? (
-                    <button type="button" onClick={() => onDelete(f.id)} className="text-rose-600 hover:underline dark:text-rose-400">
+                    <button type="button" onClick={() => onDelete(f.id)} className="-m-1 p-1.5 text-rose-600 hover:underline dark:text-rose-400">
                       Quitar
                     </button>
                   ) : null}
@@ -57,7 +57,7 @@ export default function FileList({
           {others.map((f) => (
             <li
               key={f.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm"
+              className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm"
             >
               <a
                 href={fileUrl(f.pathname)}
@@ -69,11 +69,11 @@ export default function FileList({
               </a>
               <span className="flex shrink-0 items-center gap-3 text-xs text-subtle">
                 {formatBytes(f.size)}
-                <a href={fileUrl(f.pathname, true)} className="font-medium text-primary-ink hover:underline">
+                <a href={fileUrl(f.pathname, true)} className="-m-1 p-1.5 font-medium text-primary-ink hover:underline">
                   Descargar
                 </a>
                 {onDelete ? (
-                  <button type="button" onClick={() => onDelete(f.id)} className="text-rose-600 hover:underline dark:text-rose-400">
+                  <button type="button" onClick={() => onDelete(f.id)} className="-m-1 p-1.5 text-rose-600 hover:underline dark:text-rose-400">
                     Quitar
                   </button>
                 ) : null}
