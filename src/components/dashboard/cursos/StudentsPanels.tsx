@@ -171,13 +171,13 @@ export function CourseStudentsPanel({ courseId, students }: { courseId: string; 
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       {students.length > 5 ? <SearchBox value={query} onChange={setQuery} placeholder="Buscar por nombre o correo" /> : null}
-      <ul className="grid gap-3">
+      <ul className="grid grid-cols-1 gap-3">
         {list.map((s) => {
           const pct = attendancePct(s);
           return (
-            <li key={s.id} className="surface-card grid gap-3 p-4">
+            <li key={s.id} className="surface-card grid grid-cols-1 gap-3 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-semibold">{s.full_name}</p>
@@ -229,8 +229,8 @@ export function AllStudentsPanel({ students }: { students: StudentAccountRow[] }
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+    <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <SearchBox value={query} onChange={setQuery} placeholder="Buscar por nombre o correo" />
         {orphans > 0 ? (
           <button
@@ -247,9 +247,9 @@ export function AllStudentsPanel({ students }: { students: StudentAccountRow[] }
       </div>
       <ul className="surface-card divide-y divide-border overflow-hidden">
         {list.map((s) => (
-          <li key={s.id} className="grid gap-2 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
+          <li key={s.id} className="grid grid-cols-1 gap-2 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-soft font-display text-sm font-bold text-primary-ink">
+              <span className="grid grid-cols-1 h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-soft font-display text-sm font-bold text-primary-ink">
                 {s.full_name
                   .split(" ")
                   .slice(0, 2)

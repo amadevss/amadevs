@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 const LIVE = new Set(["pending_payment", "confirmed"]);
 
 export default async function DashboardHome() {
-  await requireDashboard("/dashboard");
+  await requireDashboard();
 
   const [bookings, payments, reviews, students, courses] = await Promise.all([
     listBookingsForDashboard(),
@@ -97,7 +97,7 @@ export default async function DashboardHome() {
         />
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-2">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Section
           title="Próximas reservas"
           action={
@@ -111,10 +111,10 @@ export default async function DashboardHome() {
               Cuando alguien agende, aparecerá aquí.
             </EmptyState>
           ) : (
-            <ul className="-mx-2 grid">
+            <ul className="-mx-2 grid grid-cols-1">
               {upcoming.slice(0, 5).map((b) => (
                 <li key={b.id} className="flex items-center gap-3 rounded-xl px-2 py-2.5">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface-2 text-center leading-none">
+                  <span className="grid grid-cols-1 h-10 w-10 shrink-0 place-items-center rounded-xl bg-surface-2 text-center leading-none">
                     <span className="font-display text-sm font-bold">
                       {DateTime.fromJSDate(new Date(b.starts_at)).setZone(BUSINESS_TIMEZONE).toFormat("d")}
                     </span>
@@ -138,14 +138,14 @@ export default async function DashboardHome() {
               No hay entregas pendientes de calificar.
             </EmptyState>
           ) : (
-            <ul className="-mx-2 grid">
+            <ul className="-mx-2 grid grid-cols-1">
               {reviews.items.map((r) => (
                 <li key={r.id}>
                   <Link
                     href={`/dashboard/cursos/${r.course_id}/sesiones/${r.session_id}/entregas`}
                     className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition hover:bg-surface-2"
                   >
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                    <span className="grid grid-cols-1 h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400">
                       <Icon name="file" className="h-5 w-5" />
                     </span>
                     <span className="min-w-0 flex-1">
@@ -185,7 +185,7 @@ export default async function DashboardHome() {
             Crea un curso, agrega sesiones y comparte el enlace con tus alumnos.
           </EmptyState>
         ) : (
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {courses.slice(0, 4).map((c) => (
               <li key={c.id}>
                 <Link
@@ -193,7 +193,7 @@ export default async function DashboardHome() {
                   className="flex items-center gap-3 rounded-xl border border-border px-3 py-3 transition hover:border-primary/40 hover:bg-surface-2"
                 >
                   <span
-                    className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white"
+                    className="grid grid-cols-1 h-10 w-10 shrink-0 place-items-center rounded-xl text-white"
                     style={{ background: "var(--grad)" }}
                   >
                     <Icon name="book" className="h-5 w-5" />

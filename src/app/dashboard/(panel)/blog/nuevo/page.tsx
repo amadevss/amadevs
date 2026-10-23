@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Nuevo post" };
 export const dynamic = "force-dynamic";
 
 export default async function NuevoPostPage() {
-  await requireDashboard("/dashboard/blog/nuevo");
+  await requireDashboard();
   return (
     <>
       <PageHeader title="Nuevo post" crumbs={[{ label: "Blog", href: "/dashboard/blog" }, { label: "Nuevo" }]} />

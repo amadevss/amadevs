@@ -54,7 +54,7 @@ export default function StudentShell({
         className="mb-6 hidden items-center justify-between gap-2 rounded-2xl border border-border bg-surface px-3 py-2 text-sm sm:flex"
       >
         <span className="flex min-w-0 items-center gap-2 px-1">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary-soft font-display text-sm font-bold text-primary-ink">
+          <span className="grid grid-cols-1 h-8 w-8 shrink-0 place-items-center rounded-full bg-primary-soft font-display text-sm font-bold text-primary-ink">
             {firstName[0]?.toUpperCase()}
           </span>
           <span className="truncate font-medium">Hola, {firstName}</span>
@@ -121,7 +121,7 @@ export default function StudentShell({
             disabled={leaving}
             className="flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium text-subtle disabled:opacity-50"
           >
-            <span className="grid h-7 w-12 place-items-center rounded-full">
+            <span className="grid grid-cols-1 h-7 w-12 place-items-center rounded-full">
               <Icon name="logout" className="h-5 w-5" />
             </span>
             {leaving ? "Saliendo…" : "Salir"}

@@ -17,7 +17,7 @@ export default async function CursoLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireDashboard(courseHref(id));
+  await requireDashboard();
   const course = await loadCourse(id);
   if (!course) notFound();
   const href = courseHref(course.id);
@@ -49,7 +49,7 @@ export default async function CursoLayout({
       />
 
       <div className="surface-card mb-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-ink">
+        <span className="grid grid-cols-1 h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-ink">
           <Icon name="link" className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">

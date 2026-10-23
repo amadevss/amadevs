@@ -69,7 +69,7 @@ export function ChangePasswordForm() {
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-4">
+    <form onSubmit={submit} className="grid grid-cols-1 gap-4">
       <label className="block">
         <span className={FIELD_LABEL}>Contraseña actual</span>
         <input
@@ -81,7 +81,7 @@ export function ChangePasswordForm() {
           required
         />
       </label>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block">
           <span className={FIELD_LABEL}>Nueva contraseña</span>
           <input

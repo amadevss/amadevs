@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function NuevaSesionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireDashboard(`${courseHref(id)}/sesiones/nueva`);
+  await requireDashboard();
   const course = await loadCourse(id);
   if (!course) notFound();
   const next = Math.max(0, ...course.sessions.map((s) => s.position)) + 1;

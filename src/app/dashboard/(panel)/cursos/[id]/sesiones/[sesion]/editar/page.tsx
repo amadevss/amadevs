@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EditarSesionPage({ params }: { params: Promise<{ id: string; sesion: string }> }) {
   const { id, sesion } = await params;
-  await requireDashboard(`${sessionHref(id, sesion)}/editar`);
+  await requireDashboard();
   const session = await loadSession(id, sesion);
   if (!session) notFound();
   return (

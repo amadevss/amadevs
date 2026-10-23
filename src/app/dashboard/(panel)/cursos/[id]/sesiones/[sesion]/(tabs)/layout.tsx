@@ -17,7 +17,7 @@ export default async function SesionLayout({
   params: Promise<{ id: string; sesion: string }>;
 }) {
   const { id, sesion } = await params;
-  await requireDashboard(sessionHref(id, sesion));
+  await requireDashboard();
   const [session, course] = await Promise.all([loadSession(id, sesion), loadCourse(id)]);
   if (!session || !course) notFound();
 

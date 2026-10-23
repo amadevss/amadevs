@@ -79,7 +79,7 @@ export default function BlogAdminView({ posts }: { posts: BlogPost[] }) {
   return (
     <ul className="surface-card divide-y divide-border overflow-hidden">
       {posts.map((post) => (
-        <li key={post.id} className="grid gap-2 p-4 sm:flex sm:items-center sm:gap-4">
+        <li key={post.id} className="grid grid-cols-1 gap-2 p-4 sm:flex sm:items-center sm:gap-4">
           <Link href={`/dashboard/blog/${post.id}`} className="group min-w-0 flex-1">
             <span className="flex flex-wrap items-center gap-2">
               <span className="font-semibold group-hover:text-primary-ink">{post.title}</span>

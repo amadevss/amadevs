@@ -79,7 +79,7 @@ export default async function MisCursosPage() {
           Abre el enlace que te compartió tu profesor para inscribirte.
         </EmptyState>
       ) : (
-        <ul className="grid gap-4">
+        <ul className="grid grid-cols-1 gap-4">
           {courses.map((c) => {
             const withDelivery = c.sessions.filter((s) => s.accepts_submissions);
             const done = withDelivery.filter((s) => s.submitted).length;
@@ -89,11 +89,11 @@ export default async function MisCursosPage() {
               <li key={c.id}>
                 <Link
                   href={`${base}/${c.slug}`}
-                  className="surface-card grid gap-4 p-5 transition active:scale-[0.99] sm:p-6 sm:hover:-translate-y-0.5 sm:hover:shadow-[var(--shadow-md)]"
+                  className="surface-card grid grid-cols-1 gap-4 p-5 transition active:scale-[0.99] sm:p-6 sm:hover:-translate-y-0.5 sm:hover:shadow-[var(--shadow-md)]"
                 >
                   <div className="flex items-start gap-3">
                     <span
-                      className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-white"
+                      className="grid grid-cols-1 h-11 w-11 shrink-0 place-items-center rounded-2xl text-white"
                       style={{ background: "var(--grad)" }}
                     >
                       <Icon name="book" className="h-5 w-5" />
@@ -107,7 +107,7 @@ export default async function MisCursosPage() {
                     {pending > 0 ? <Badge tone="warn">{pending} pendientes</Badge> : null}
                   </div>
                   {withDelivery.length > 0 ? (
-                    <div className="grid gap-1.5">
+                    <div className="grid grid-cols-1 gap-1.5">
                       <div className="flex justify-between text-xs text-muted">
                         <span>Entregas</span>
                         <span className="font-semibold text-fg">

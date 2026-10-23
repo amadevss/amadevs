@@ -38,7 +38,7 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-4">
+    <form onSubmit={submit} className="grid grid-cols-1 gap-4">
       <label className="block">
         <span className="text-xs font-semibold uppercase tracking-wide text-subtle">
           Usuario

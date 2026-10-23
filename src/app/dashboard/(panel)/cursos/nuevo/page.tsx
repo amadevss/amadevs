@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Nuevo curso" };
 export const dynamic = "force-dynamic";
 
 export default async function NuevoCursoPage() {
-  await requireDashboard("/dashboard/cursos/nuevo");
+  await requireDashboard();
   return (
     <>
       <PageHeader

@@ -12,7 +12,7 @@ const UUID_RE = /^[0-9a-f-]{36}$/i;
 
 export default async function EditarPostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireDashboard(`/dashboard/blog/${id}`);
+  await requireDashboard();
   const post = UUID_RE.test(id) ? await getBlogPostById(id) : null;
   if (!post) notFound();
   return (

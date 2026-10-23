@@ -43,9 +43,9 @@ export default async function CursoPage({ params }: Props) {
     return (
       <div className="mx-auto max-w-md">
         {header}
-        <div className="surface-card grid gap-4 p-5 sm:p-6">
+        <div className="surface-card grid grid-cols-1 gap-4 p-5 sm:p-6">
           <p className="flex items-start gap-3 text-sm text-muted">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-ink">
+            <span className="grid grid-cols-1 h-9 w-9 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-ink">
               <Icon name="lock" className="h-4 w-4" />
             </span>
             Para ver las sesiones y entregar tareas necesitas una cuenta. Te inscribimos al curso en el mismo paso.
@@ -65,7 +65,7 @@ export default async function CursoPage({ params }: Props) {
     return (
       <div className="mx-auto max-w-md">
         {header}
-        <div className="surface-card grid gap-4 p-5 sm:p-6">
+        <div className="surface-card grid grid-cols-1 gap-4 p-5 sm:p-6">
           <p className="text-sm text-muted">Aún no estás inscrito en este curso. Inscríbete para ver sus sesiones.</p>
           <EnrollButton courseSlug={course.slug} />
         </div>
@@ -88,7 +88,7 @@ export default async function CursoPage({ params }: Props) {
       {header}
 
       {sessions.length > 0 ? (
-        <section className="surface-card mb-6 grid gap-4 p-4 sm:p-5">
+        <section className="surface-card mb-6 grid grid-cols-1 gap-4 p-4 sm:p-5">
           <dl className="grid grid-cols-3 gap-2 text-center">
             <div>
               <dt className="text-[11px] uppercase tracking-wide text-subtle">Asistencia</dt>
@@ -114,7 +114,7 @@ export default async function CursoPage({ params }: Props) {
           Tu profesor las irá publicando; vuelve pronto.
         </EmptyState>
       ) : (
-        <ol className="grid gap-3">
+        <ol className="grid grid-cols-1 gap-3">
           {sessions.map((s) => {
             const st = byId.get(s.id);
             const state = deliveryState(s, st, now);

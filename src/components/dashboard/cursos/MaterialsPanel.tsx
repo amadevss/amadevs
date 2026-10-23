@@ -84,7 +84,7 @@ export default function MaterialsPanel({ sessionId, materials }: { sessionId: st
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <label
         className={`flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition ${
           dragging ? "border-primary bg-primary-soft" : "border-border-strong bg-surface hover:border-primary/60"
@@ -100,7 +100,7 @@ export default function MaterialsPanel({ sessionId, materials }: { sessionId: st
           addFiles(e.dataTransfer.files);
         }}
       >
-        <span className="grid h-12 w-12 place-items-center rounded-full bg-primary-soft text-primary-ink">
+        <span className="grid grid-cols-1 h-12 w-12 place-items-center rounded-full bg-primary-soft text-primary-ink">
           <Icon name="upload" className="h-6 w-6" />
         </span>
         <span className="font-medium">
@@ -116,9 +116,9 @@ export default function MaterialsPanel({ sessionId, materials }: { sessionId: st
       </label>
 
       {uploads.length > 0 ? (
-        <ul className="grid gap-2" aria-live="polite">
+        <ul className="grid grid-cols-1 gap-2" aria-live="polite">
           {uploads.map((u) => (
-            <li key={u.key} className="surface-card grid gap-2 px-4 py-3">
+            <li key={u.key} className="surface-card grid grid-cols-1 gap-2 px-4 py-3">
               <div className="flex items-center justify-between gap-3 text-sm">
                 <span className="min-w-0 truncate font-medium">{u.name}</span>
                 <span className={`shrink-0 text-xs ${u.error ? "text-rose-600 dark:text-rose-400" : "text-subtle"}`}>
@@ -138,7 +138,7 @@ export default function MaterialsPanel({ sessionId, materials }: { sessionId: st
       {materials.length === 0 ? (
         <p className="text-center text-sm text-subtle">Aún no hay materiales en esta sesión.</p>
       ) : (
-        <section className="grid gap-3">
+        <section className="grid grid-cols-1 gap-3">
           <h2 className="text-xs font-semibold uppercase tracking-wide text-subtle">
             {materials.length} {materials.length === 1 ? "archivo" : "archivos"} visibles para los alumnos
           </h2>

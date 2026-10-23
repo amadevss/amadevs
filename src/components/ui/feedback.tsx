@@ -138,7 +138,7 @@ function ToastStack({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: nu
             <button
               type="button"
               onClick={() => onDismiss(t.id)}
-              className="-m-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-subtle transition hover:bg-surface-2 hover:text-fg"
+              className="-m-1 grid grid-cols-1 h-8 w-8 shrink-0 place-items-center rounded-full text-subtle transition hover:bg-surface-2 hover:text-fg"
               aria-label="Cerrar aviso"
             >
               <Icon name="x" className="h-4 w-4" />

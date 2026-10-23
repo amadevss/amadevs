@@ -11,7 +11,7 @@ type Props = { searchParams: Promise<{ fecha?: string; hora?: string; servicio?:
 
 export default async function NuevaReservaPage({ searchParams }: Props) {
   const { fecha, hora, servicio, desde } = await searchParams;
-  await requireDashboard("/dashboard/reservas/nueva");
+  await requireDashboard();
   const services = await getActiveServices();
   const fromCalendar = desde === "calendario";
   const back = fromCalendar ? { label: "Calendario", href: "/dashboard/calendario" } : { label: "Reservas", href: "/dashboard/reservas" };

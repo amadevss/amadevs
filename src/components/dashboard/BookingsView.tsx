@@ -84,7 +84,7 @@ export default function BookingsView({
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <div className="flex w-max gap-1.5">
           {BOOKING_FILTERS.map((f) => {
@@ -136,9 +136,9 @@ export default function BookingsView({
       ) : (
         <>
           {/* Celular: tarjetas */}
-          <ul className="grid gap-3 md:hidden">
+          <ul className="grid grid-cols-1 gap-3 md:hidden">
             {rows.map((b) => (
-              <li key={b.id} className="surface-card grid gap-3 p-4">
+              <li key={b.id} className="surface-card grid grid-cols-1 gap-3 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{b.customer_name}</p>
@@ -146,7 +146,7 @@ export default function BookingsView({
                   </div>
                   <Badge tone={STATUS_TONE[b.status]}>{STATUS_LABEL[b.status]}</Badge>
                 </div>
-                <div className="grid gap-1 text-sm">
+                <div className="grid grid-cols-1 gap-1 text-sm">
                   <p className="flex items-center gap-2 text-muted">
                     <Icon name="calendar" className="h-4 w-4 shrink-0" />
                     {formatDateTime(b.starts_at, businessTimezone)}

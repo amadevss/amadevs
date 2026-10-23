@@ -35,8 +35,8 @@ export default function SubmissionPanel({
 
   if (sent) {
     return (
-      <div className="grid justify-items-center gap-3 py-6 text-center">
-        <span className="grid h-16 w-16 place-items-center rounded-full bg-emerald-500/12 text-emerald-600 dark:text-emerald-400">
+      <div className="grid grid-cols-1 justify-items-center gap-3 py-6 text-center">
+        <span className="grid grid-cols-1 h-16 w-16 place-items-center rounded-full bg-emerald-500/12 text-emerald-600 dark:text-emerald-400">
           <Icon name="check" className="h-8 w-8" />
         </span>
         <p className="font-display text-xl font-bold">¡Entrega enviada!</p>
@@ -60,7 +60,7 @@ export default function SubmissionPanel({
 
   if (submission && !editing) {
     return (
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm">
           <p className="font-semibold text-emerald-700 dark:text-emerald-400">Entregado ✓</p>
           <p className="text-xs text-muted">Última actualización: {formatDateTime(submission.updated_at)}</p>
@@ -177,7 +177,7 @@ function SubmissionForm({
   const valid = kept.length + files.length > 0 || comment.trim().length > 0;
 
   return (
-    <form onSubmit={submit} className="grid gap-4">
+    <form onSubmit={submit} className="grid grid-cols-1 gap-4">
       {kept.length > 0 ? (
         <div>
           <span className="text-xs font-semibold uppercase tracking-wide text-subtle">Archivos que ya subiste</span>
@@ -210,7 +210,7 @@ function SubmissionForm({
             addFiles(e.dataTransfer.files);
           }}
         >
-          <span className="grid h-12 w-12 place-items-center rounded-full bg-primary-soft text-primary-ink">
+          <span className="grid grid-cols-1 h-12 w-12 place-items-center rounded-full bg-primary-soft text-primary-ink">
             <Icon name="upload" className="h-6 w-6" />
           </span>
           <span className="font-medium text-fg">
@@ -222,11 +222,11 @@ function SubmissionForm({
           <input ref={inputRef} type="file" multiple className="sr-only" onChange={(e) => addFiles(e.target.files)} />
         </label>
         {files.length > 0 ? (
-          <ul className="mt-3 grid gap-2 text-sm" aria-live="polite">
+          <ul className="mt-3 grid grid-cols-1 gap-2 text-sm" aria-live="polite">
             {files.map((f, i) => {
               const pct = Math.round(progress[i] ?? 0);
               return (
-                <li key={i} className="grid gap-1.5 rounded-xl border border-border bg-surface px-3 py-2.5">
+                <li key={i} className="grid grid-cols-1 gap-1.5 rounded-xl border border-border bg-surface px-3 py-2.5">
                   <div className="flex min-h-8 items-center justify-between gap-3">
                     <span className="flex min-w-0 items-center gap-2">
                       <Icon name="file" className="h-4 w-4 shrink-0 text-subtle" />
@@ -238,7 +238,7 @@ function SubmissionForm({
                         <button
                           type="button"
                           aria-label={`Quitar ${f.name}`}
-                          className="grid h-8 w-8 place-items-center rounded-full text-rose-600 transition hover:bg-rose-500/10 dark:text-rose-400"
+                          className="grid grid-cols-1 h-8 w-8 place-items-center rounded-full text-rose-600 transition hover:bg-rose-500/10 dark:text-rose-400"
                           onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
                         >
                           <Icon name="x" className="h-4 w-4" />

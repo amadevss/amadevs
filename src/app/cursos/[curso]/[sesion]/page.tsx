@@ -53,7 +53,7 @@ export default async function SesionPage({ params }: Props) {
 
       <article className="surface-card overflow-hidden">
         <div className="h-1 w-full" style={{ background: "var(--grad)" }} />
-        <div className="grid gap-6 p-5 sm:gap-8 sm:p-10">
+        <div className="grid grid-cols-1 gap-6 p-5 sm:gap-8 sm:p-10">
           <header>
             <div className="flex flex-wrap items-center gap-2">
               <p className="eyebrow">Sesión {session.position}</p>
@@ -82,7 +82,7 @@ export default async function SesionPage({ params }: Props) {
       </article>
 
       {session.accepts_submissions ? (
-        <section className="surface-card mt-5 grid gap-4 p-5 sm:mt-6 sm:p-6">
+        <section className="surface-card mt-5 grid grid-cols-1 gap-4 p-5 sm:mt-6 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h2 className="font-display text-lg font-bold">Tu entrega</h2>

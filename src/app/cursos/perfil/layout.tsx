@@ -18,7 +18,7 @@ export default async function PerfilLayout({ children }: { children: ReactNode }
     <>
       <header className="mb-6 flex items-center gap-4">
         <span
-          className="grid h-14 w-14 shrink-0 place-items-center rounded-full font-display text-lg font-bold text-white"
+          className="grid grid-cols-1 h-14 w-14 shrink-0 place-items-center rounded-full font-display text-lg font-bold text-white"
           style={{ background: "var(--grad)" }}
         >
           {initials}

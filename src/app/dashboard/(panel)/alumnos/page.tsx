@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Alumnos" };
 export const dynamic = "force-dynamic";
 
 export default async function AlumnosPage() {
-  await requireDashboard("/dashboard/alumnos");
+  await requireDashboard();
   const students = await listAllStudents();
   return (
     <>

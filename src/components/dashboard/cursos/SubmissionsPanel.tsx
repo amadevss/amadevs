@@ -37,7 +37,7 @@ export default function SubmissionsPanel({
   );
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
           {(Object.keys(FILTER_LABEL) as Filter[]).map((f) => (
@@ -92,7 +92,7 @@ export default function SubmissionsPanel({
           {filter === "pendientes" ? "No queda ninguna entrega por calificar." : "Cambia el filtro para ver las demás."}
         </EmptyState>
       ) : (
-        <ul className="grid gap-4">
+        <ul className="grid grid-cols-1 gap-4">
           {list.map((s) => (
             <SubmissionItem key={s.id} sub={s} dueAt={dueAt} />
           ))}
@@ -171,7 +171,7 @@ function SubmissionItem({ sub, dueAt }: { sub: CourseSubmission; dueAt: string |
       ) : null}
       <FileList files={sub.files} />
 
-      <div className="grid gap-3 border-t border-border pt-4 sm:grid-cols-[9rem_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-3 border-t border-border pt-4 sm:grid-cols-[9rem_minmax(0,1fr)]">
         <label className="block">
           <span className={FIELD_LABEL}>Calificación</span>
           <input

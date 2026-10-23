@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Pagos" };
 export const dynamic = "force-dynamic";
 
 export default async function PagosPage() {
-  await requireDashboard("/dashboard/pagos");
+  await requireDashboard();
   const payments = await listPaymentsForDashboard();
 
   const monthStart = DateTime.now().setZone(BUSINESS_TIMEZONE).startOf("month").toMillis();

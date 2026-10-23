@@ -61,7 +61,7 @@ export default function AuthForm({
 
   return (
     <div className="surface-card p-5 sm:p-8">
-      <form onSubmit={submit} className="grid gap-4">
+      <form onSubmit={submit} className="grid grid-cols-1 gap-4">
         {registering ? (
           <label className="block">
             <span className={FIELD_LABEL}>Nombre completo</span>
@@ -107,7 +107,7 @@ export default function AuthForm({
               type="button"
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              className="absolute inset-y-0 right-0 grid w-12 place-items-center text-subtle transition hover:text-fg"
+              className="absolute inset-y-0 right-0 grid grid-cols-1 w-12 place-items-center text-subtle transition hover:text-fg"
             >
               <Icon name={showPassword ? "eyeOff" : "eye"} className="h-5 w-5" />
             </button>

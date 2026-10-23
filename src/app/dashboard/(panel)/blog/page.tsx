@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Blog" };
 export const dynamic = "force-dynamic";
 
 export default async function BlogAdminPage() {
-  await requireDashboard("/dashboard/blog");
+  await requireDashboard();
   const posts = await listAllBlogPostsForDashboard();
   const visible = posts.filter((p) => !p.hidden).length;
   return (

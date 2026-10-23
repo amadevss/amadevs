@@ -194,7 +194,7 @@ export default function CalendarView({
   const selectedBlackouts = selectedDate ? blackoutsForDay(selectedDate) : [];
 
   return (
-    <div className="surface-card grid gap-6 p-5 sm:grid-cols-[minmax(0,20rem)_1fr] sm:p-6">
+    <div className="surface-card grid grid-cols-1 gap-6 p-5 sm:grid-cols-[minmax(0,20rem)_1fr] sm:p-6">
       {/* Calendario */}
       <div>
         <div className="flex items-center justify-between">
@@ -274,7 +274,7 @@ export default function CalendarView({
               {DateTime.fromISO(selectedDate).setLocale("es").toFormat("cccc d 'de' LLLL yyyy")}
             </p>
 
-            <div className="mt-3 grid gap-2">
+            <div className="mt-3 grid grid-cols-1 gap-2">
               {selectedBookings.length === 0 ? (
                 <p className="text-sm text-subtle">Sin reservaciones este día.</p>
               ) : (
@@ -312,7 +312,7 @@ export default function CalendarView({
               {selectedBlackouts.length === 0 ? (
                 <p className="mt-2 text-sm text-subtle">Sin bloqueos este día.</p>
               ) : (
-                <div className="mt-2 grid gap-2">
+                <div className="mt-2 grid grid-cols-1 gap-2">
                   {selectedBlackouts.map((b) => (
                     <div
                       key={b.id}
@@ -337,7 +337,7 @@ export default function CalendarView({
               )}
 
               {showBlackoutForm ? (
-                <form onSubmit={submitBlackout} className="mt-3 grid gap-3 rounded-lg border border-border p-3">
+                <form onSubmit={submitBlackout} className="mt-3 grid grid-cols-1 gap-3 rounded-lg border border-border p-3">
                   <div className="grid grid-cols-2 gap-3">
                     <label className="block">
                       <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-subtle">

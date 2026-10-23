@@ -27,8 +27,8 @@ function FormShell({
 }) {
   const router = useRouter();
   return (
-    <form onSubmit={onSubmit} className="surface-card grid gap-5 p-5 sm:p-6">
-      <div className="grid gap-5 sm:grid-cols-2">{children}</div>
+    <form onSubmit={onSubmit} className="surface-card grid grid-cols-1 gap-5 p-5 sm:p-6">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">{children}</div>
       {error ? <ErrorNote>{error}</ErrorNote> : null}
       <div className="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end">
         <button type="button" className="btn btn-ghost min-h-11" onClick={() => router.push(cancelHref)} disabled={submitting}>
@@ -274,7 +274,7 @@ export function SessionForm({
           Acepta Markdown: títulos (##), listas, tablas, enlaces y bloques de código.
         </span>
       </label>
-      <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:col-span-2 sm:grid-cols-2">
         <Toggle
           checked={acceptsSubmissions}
           onChange={setAcceptsSubmissions}

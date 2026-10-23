@@ -14,7 +14,7 @@ type Props = { searchParams: Promise<{ estado?: string }> };
 
 export default async function ReservasPage({ searchParams }: Props) {
   const { estado } = await searchParams;
-  await requireDashboard(`/dashboard/reservas${estado ? `?estado=${estado}` : ""}`);
+  await requireDashboard();
   const filter = parseBookingFilter(estado);
   const bookings = await listBookingsForDashboard();
 

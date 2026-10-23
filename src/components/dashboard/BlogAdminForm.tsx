@@ -45,8 +45,8 @@ export default function BlogAdminForm({
   }
 
   return (
-    <form onSubmit={submit} className="surface-card grid gap-5 p-5 sm:p-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={submit} className="surface-card grid grid-cols-1 gap-5 p-5 sm:p-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-wide text-subtle">Título *</span>
           <input className="agenda-input mt-1 min-h-11" value={title} onChange={(e) => setTitle(e.target.value)} />

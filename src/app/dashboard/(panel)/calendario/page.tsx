@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Calendario" };
 export const dynamic = "force-dynamic";
 
 export default async function CalendarioPage() {
-  await requireDashboard("/dashboard/calendario");
+  await requireDashboard();
   const [bookings, blackouts, services] = await Promise.all([
     listBookingsForDashboard(),
     listBlackoutsForDashboard(),

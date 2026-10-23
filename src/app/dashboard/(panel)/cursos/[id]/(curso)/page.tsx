@@ -39,7 +39,7 @@ export default async function CursoSesionesPage({ params }: Props) {
   const now = Date.now();
 
   return (
-    <div className="grid gap-3">
+    <div className="grid grid-cols-1 gap-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted">Toca una sesión para pasar lista, subir materiales o calificar.</p>
         <ButtonLink href={newHref} icon="plus" className="shrink-0">

@@ -46,7 +46,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     <div className="pb-28 pt-2 lg:grid lg:grid-cols-[12.5rem_minmax(0,1fr)] lg:gap-8 lg:pb-16 lg:pt-6">
       {/* Barra lateral (computadora) */}
       <aside className="hidden lg:block">
-        <div className="sticky top-24 grid gap-1">
+        <div className="sticky top-24 grid grid-cols-1 gap-1">
           <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-subtle">Dashboard</p>
           {NAV.map((item) => {
             const active = isActive(pathname, item);
@@ -130,7 +130,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
             onClick={() => setMoreOpen(false)}
           />
           <div
-            className="dialog-in absolute inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] grid gap-1 rounded-t-3xl border border-border-strong p-3"
+            className="dialog-in absolute inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] grid grid-cols-1 gap-1 rounded-t-3xl border border-border-strong p-3"
             style={{ backgroundColor: "var(--bg)" }}
           >
             {moreItems.map((item) => {

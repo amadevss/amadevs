@@ -99,8 +99,8 @@ export default function AttendancePanel({
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="surface-card grid gap-4 p-4 sm:p-5">
+    <div className="grid grid-cols-1 gap-4">
+      <div className="surface-card grid grid-cols-1 gap-4 p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-1.5">
             {STATUS_ORDER.map((st) => (
@@ -152,7 +152,7 @@ export default function AttendancePanel({
 
       <ul className="surface-card divide-y divide-border overflow-hidden">
         {visible.map((r) => (
-          <li key={r.student_id} className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
+          <li key={r.student_id} className="grid grid-cols-1 gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4">
             <span className="flex min-w-0 items-center gap-3">
               <span
                 className={`h-2.5 w-2.5 shrink-0 rounded-full ${

@@ -21,9 +21,9 @@ export default function PaymentsView({
 
   return (
     <>
-      <ul className="grid gap-3 md:hidden">
+      <ul className="grid grid-cols-1 gap-3 md:hidden">
         {payments.map((p) => (
-          <li key={p.id} className="surface-card grid gap-2 p-4">
+          <li key={p.id} className="surface-card grid grid-cols-1 gap-2 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate font-semibold">{p.customer_name}</p>

@@ -180,7 +180,7 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center rounded-2xl border border-dashed border-border-strong px-6 py-10 text-center">
-      <span className="grid h-12 w-12 place-items-center rounded-full bg-primary-soft text-primary-ink">
+      <span className="grid grid-cols-1 h-12 w-12 place-items-center rounded-full bg-primary-soft text-primary-ink">
         <Icon name={icon} className="h-6 w-6" />
       </span>
       <p className="mt-3 font-display text-base font-bold">{title}</p>
@@ -197,8 +197,8 @@ export function Skeleton({ className = "" }: { className?: string }) {
 /** Esqueleto genérico de página: encabezado, métricas y lista. */
 export function PageSkeleton({ stats = false, rows = 4 }: { stats?: boolean; rows?: number }) {
   return (
-    <div className="grid gap-5" role="status" aria-label="Cargando">
-      <div className="grid gap-2">
+    <div className="grid grid-cols-1 gap-5" role="status" aria-label="Cargando">
+      <div className="grid grid-cols-1 gap-2">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-8 w-56" />
       </div>
@@ -209,7 +209,7 @@ export function PageSkeleton({ stats = false, rows = 4 }: { stats?: boolean; row
           ))}
         </div>
       ) : null}
-      <div className="grid gap-3">
+      <div className="grid grid-cols-1 gap-3">
         {Array.from({ length: rows }, (_, i) => (
           <Skeleton key={i} className="h-20" />
         ))}

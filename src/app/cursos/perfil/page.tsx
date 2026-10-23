@@ -27,7 +27,7 @@ export default async function PerfilPage() {
   const now = Date.now();
 
   return (
-    <div className="grid gap-5">
+    <div className="grid grid-cols-1 gap-5">
       {courses.map((c) => {
         const pct = attendancePercent(c.sessions.map((s) => s.attendance));
         const graded = c.sessions.filter((s) => s.grade);

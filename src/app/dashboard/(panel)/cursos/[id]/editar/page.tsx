@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EditarCursoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  await requireDashboard(`${courseHref(id)}/editar`);
+  await requireDashboard();
   const course = await loadCourse(id);
   if (!course) notFound();
   return (

@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "Cursos" };
 export const dynamic = "force-dynamic";
 
 export default async function CursosPage() {
-  await requireDashboard("/dashboard/cursos");
+  await requireDashboard();
   const courses = await listCoursesOverview();
 
   return (
@@ -40,13 +40,13 @@ export default async function CursosPage() {
           Un curso agrupa sesiones con materiales, entregas y asistencia. Tus alumnos se inscriben con un enlace.
         </EmptyState>
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {courses.map((c) => (
             <li key={c.id} className="surface-card flex flex-col overflow-hidden">
-              <Link href={courseHref(c.id)} className="group grid flex-1 gap-3 p-5">
+              <Link href={courseHref(c.id)} className="group grid grid-cols-1 flex-1 gap-3 p-5">
                 <div className="flex items-start justify-between gap-3">
                   <span
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-white"
+                    className="grid grid-cols-1 h-11 w-11 shrink-0 place-items-center rounded-2xl text-white"
                     style={{ background: "var(--grad)" }}
                   >
                     <Icon name="book" className="h-5 w-5" />
