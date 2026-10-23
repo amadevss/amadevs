@@ -2,10 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "../components/ThemeProvider";
-import HeaderClient from "../components/HeaderClient";
-import RouteTransition from "../components/RouteTransition";
-import SiteFooter from "../components/SiteFooter";
-import ScrollProgress from "../components/motion/ScrollProgress";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -183,18 +179,8 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <ThemeProvider>
-          <ScrollProgress />
-          <div className="app-shell">
-            <HeaderClient />
-            <main className="mx-auto max-w-5xl px-5 pt-6 sm:px-6 sm:pt-8">
-              <RouteTransition>{children}</RouteTransition>
-            </main>
-            <div className="mx-auto max-w-5xl px-5 sm:px-6">
-              <SiteFooter />
-            </div>
-          </div>
-        </ThemeProvider>
+        {/* Header y footer de la landing viven en (site)/layout; dashboard y cursos tienen su propio shell. */}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
