@@ -1,4 +1,5 @@
 import { fileUrl, formatBytes, isImage, isVideo } from "@/lib/cursos/shared";
+import Icon from "@/components/ui/icons";
 
 type FileItem = { id: string; pathname: string; filename: string; content_type: string; size: number };
 
@@ -63,9 +64,10 @@ export default function FileList({
                 href={fileUrl(f.pathname)}
                 target="_blank"
                 rel="noreferrer"
-                className="min-w-0 truncate font-medium hover:text-primary-ink"
+                className="flex min-w-0 items-center gap-2 font-medium hover:text-primary-ink"
               >
-                📎 {f.filename}
+                <Icon name="file" className="h-4 w-4 shrink-0 text-subtle" />
+                <span className="truncate">{f.filename}</span>
               </a>
               <span className="flex shrink-0 items-center gap-3 text-xs text-subtle">
                 {formatBytes(f.size)}

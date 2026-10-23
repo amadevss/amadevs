@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { DateTime } from "luxon";
 import { STATUS_TONE } from "@/lib/agenda/format";
 import type { Blackout, BookingWithService, Service } from "@/lib/agenda/types";
+import { useFeedback } from "@/components/ui/feedback";
 
 const WEEKDAY_LABELS = ["D", "L", "M", "M", "J", "V", "S"];
 const MONTHS = [
@@ -43,6 +44,7 @@ export default function CalendarView({
   businessTimezone: string;
   onPickSlot: (args: { date: string; time?: string; serviceSlug?: string }) => void;
 }) {
+  const { toast, confirm } = useFeedback();
   const today = DateTime.now().setZone(businessTimezone);
   const todayIso = today.toISODate() ?? "";
   const [view, setView] = useState({ year: today.year, month: today.month - 1 });
@@ -104,6 +106,7 @@ export default function CalendarView({
       if (!r.ok) throw new Error(j.error || "No se pudo crear el bloqueo");
       setBlackouts((prev) => [j.blackout as Blackout, ...prev]);
       setShowBlackoutForm(false);
+      toast.success("Horario bloqueado");
     } catch (err) {
       setBlackoutError((err as Error).message);
     } finally {
@@ -112,14 +115,21 @@ export default function CalendarView({
   }
 
   async function removeBlackout(id: string) {
-    if (!window.confirm("¿Quitar este bloqueo?")) return;
+    const ok = await confirm({
+      title: "¿Quitar este bloqueo?",
+      message: "Esas horas volverán a estar disponibles para reservar.",
+      confirmLabel: "Quitar bloqueo",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       const r = await fetch(`/api/dashboard/blackouts/${id}`, { method: "DELETE" });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "No se pudo quitar el bloqueo");
       setBlackouts((prev) => prev.filter((b) => b.id !== id));
+      toast.success("Bloqueo quitado");
     } catch (err) {
-      window.alert((err as Error).message);
+      toast.error((err as Error).message);
     }
   }
 

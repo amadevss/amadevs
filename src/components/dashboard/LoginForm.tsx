@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { safeDashboardNext } from "@/lib/dashboard/next";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -13,7 +14,7 @@ export default function LoginForm() {
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    setNextPath(p.get("next") || "/dashboard");
+    setNextPath(safeDashboardNext(p.get("next")));
   }, []);
 
   async function submit(e: FormEvent) {

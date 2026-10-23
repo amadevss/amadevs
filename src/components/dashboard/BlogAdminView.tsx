@@ -1,155 +1,118 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import type { BlogPost } from "@/lib/blog/posts";
-import BlogAdminForm from "./BlogAdminForm";
+import { useFeedback } from "@/components/ui/feedback";
+import { ButtonLink, EmptyState, VisibilityBadge } from "@/components/ui/kit";
+import Icon from "@/components/ui/icons";
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("es-MX", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return new Date(iso).toLocaleDateString("es-MX", { year: "numeric", month: "short", day: "numeric" });
 }
 
-type FormState = { mode: "create" } | { mode: "edit"; post: BlogPost } | null;
+const actionCls =
+  "inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted transition hover:bg-surface-2 hover:text-fg disabled:opacity-40";
 
-export default function BlogAdminView({ initialPosts }: { initialPosts: BlogPost[] }) {
-  const [posts, setPosts] = useState(initialPosts);
-  const [form, setForm] = useState<FormState>(null);
+export default function BlogAdminView({ posts }: { posts: BlogPost[] }) {
+  const router = useRouter();
+  const { toast, confirm } = useFeedback();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [, startRefresh] = useTransition();
 
-  async function toggleHidden(post: BlogPost) {
+  async function run(post: BlogPost, fn: () => Promise<Response>, success: string) {
     setBusyId(post.id);
     try {
-      const r = await fetch(`/api/dashboard/blog/${post.id}/hidden`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ hidden: !post.hidden }),
-      });
-      const j = await r.json();
+      const r = await fn();
+      const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || "No se pudo actualizar el post");
-      setPosts((prev) => prev.map((p) => (p.id === post.id ? (j.post as BlogPost) : p)));
+      toast.success(success);
+      startRefresh(() => router.refresh());
     } catch (err) {
-      window.alert((err as Error).message);
+      toast.error((err as Error).message);
     } finally {
       setBusyId(null);
     }
+  }
+
+  async function toggleHidden(post: BlogPost) {
+    await run(
+      post,
+      () =>
+        fetch(`/api/dashboard/blog/${post.id}/hidden`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ hidden: !post.hidden }),
+        }),
+      post.hidden ? "Post publicado" : "Post oculto",
+    );
   }
 
   async function remove(post: BlogPost) {
-    if (!window.confirm(`¿Eliminar "${post.title}" para siempre? Esta acción no se puede deshacer.`)) return;
-    setBusyId(post.id);
-    try {
-      const r = await fetch(`/api/dashboard/blog/${post.id}`, { method: "DELETE" });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "No se pudo eliminar el post");
-      setPosts((prev) => prev.filter((p) => p.id !== post.id));
-    } catch (err) {
-      window.alert((err as Error).message);
-    } finally {
-      setBusyId(null);
-    }
+    const ok = await confirm({
+      title: `¿Eliminar "${post.title}"?`,
+      message: "Se borra para siempre. Si solo quieres quitarlo del blog, usa Ocultar.",
+      confirmLabel: "Eliminar post",
+      danger: true,
+    });
+    if (!ok) return;
+    await run(post, () => fetch(`/api/dashboard/blog/${post.id}`, { method: "DELETE" }), "Post eliminado");
+  }
+
+  if (posts.length === 0) {
+    return (
+      <EmptyState
+        icon="pen"
+        title="Sin posts todavía"
+        action={
+          <ButtonLink href="/dashboard/blog/nuevo" icon="plus">
+            Escribir el primero
+          </ButtonLink>
+        }
+      >
+        Escribe en Markdown y publícalo en el blog.
+      </EmptyState>
+    );
   }
 
   return (
-    <div className="grid gap-6">
-      <div className="flex items-center justify-end">
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => setForm((f) => (f ? null : { mode: "create" }))}
-        >
-          {form ? "Cerrar formulario" : "+ Nuevo post"}
-        </button>
-      </div>
-
-      {form ? (
-        <BlogAdminForm
-          key={form.mode === "edit" ? form.post.id : "create"}
-          post={form.mode === "edit" ? form.post : undefined}
-          onCancel={() => setForm(null)}
-          onSaved={(post) => {
-            setPosts((prev) =>
-              prev.some((p) => p.id === post.id)
-                ? prev.map((p) => (p.id === post.id ? post : p))
-                : [post, ...prev],
-            );
-            setForm(null);
-          }}
-        />
-      ) : null}
-
-      <div className="surface-card overflow-x-auto">
-        <table className="w-full min-w-[640px] text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-subtle">
-              <th className="px-4 py-3">Título</th>
-              <th className="px-4 py-3">Fecha</th>
-              <th className="px-4 py-3">Estado</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {posts.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-sm text-subtle">
-                  Sin posts todavía.
-                </td>
-              </tr>
-            ) : (
-              posts.map((post) => (
-                <tr key={post.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{post.title}</div>
-                    <div className="text-xs text-subtle">/blog/{post.slug}</div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">{formatDate(post.published_at)}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                        post.hidden
-                          ? "border-border bg-surface-2 text-subtle"
-                          : "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                      }`}
-                    >
-                      {post.hidden ? "Oculto" : "Publicado"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-3">
-                      <button
-                        type="button"
-                        className="text-xs font-medium text-muted transition hover:text-fg disabled:opacity-40"
-                        disabled={busyId === post.id}
-                        onClick={() => setForm({ mode: "edit", post })}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="text-xs font-medium text-muted transition hover:text-fg disabled:opacity-40"
-                        disabled={busyId === post.id}
-                        onClick={() => toggleHidden(post)}
-                      >
-                        {post.hidden ? "Mostrar" : "Ocultar"}
-                      </button>
-                      <button
-                        type="button"
-                        className="text-xs font-medium text-rose-600 transition hover:underline disabled:opacity-40 dark:text-rose-400"
-                        disabled={busyId === post.id}
-                        onClick={() => remove(post)}
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <ul className="surface-card divide-y divide-border overflow-hidden">
+      {posts.map((post) => (
+        <li key={post.id} className="grid gap-2 p-4 sm:flex sm:items-center sm:gap-4">
+          <Link href={`/dashboard/blog/${post.id}`} className="group min-w-0 flex-1">
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold group-hover:text-primary-ink">{post.title}</span>
+              <VisibilityBadge hidden={post.hidden} />
+            </span>
+            <span className="mt-0.5 block truncate text-xs text-subtle">
+              {formatDate(post.published_at)} · /blog/{post.slug}
+            </span>
+          </Link>
+          <div className="-ml-2.5 flex shrink-0 flex-wrap items-center sm:ml-0">
+            <Link href={`/dashboard/blog/${post.id}`} className={actionCls}>
+              <Icon name="edit" className="h-4 w-4" /> Editar
+            </Link>
+            {!post.hidden ? (
+              <a href={`/blog/${post.slug}`} target="_blank" rel="noreferrer" className={actionCls}>
+                <Icon name="external" className="h-4 w-4" /> Ver
+              </a>
+            ) : null}
+            <button type="button" className={actionCls} disabled={busyId === post.id} onClick={() => toggleHidden(post)}>
+              <Icon name={post.hidden ? "eye" : "eyeOff"} className="h-4 w-4" />
+              {post.hidden ? "Publicar" : "Ocultar"}
+            </button>
+            <button
+              type="button"
+              className={`${actionCls} text-rose-600 hover:bg-rose-500/10 hover:text-rose-700 dark:text-rose-400`}
+              disabled={busyId === post.id}
+              onClick={() => remove(post)}
+            >
+              <Icon name="trash" className="h-4 w-4" /> Eliminar
+            </button>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import type { BlogPost } from "@/lib/blog/posts";
+import { ErrorNote } from "@/components/ui/kit";
 
 export default function BlogAdminForm({
   post,
@@ -44,25 +45,18 @@ export default function BlogAdminForm({
   }
 
   return (
-    <form onSubmit={submit} className="surface-card grid gap-4 p-5 sm:p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-base font-bold">{editing ? "Editar post" : "Nuevo post"}</h2>
-        <button type="button" onClick={onCancel} className="text-sm text-muted transition hover:text-fg">
-          Cerrar
-        </button>
-      </div>
-
+    <form onSubmit={submit} className="surface-card grid gap-5 p-5 sm:p-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-wide text-subtle">Título *</span>
-          <input className="agenda-input mt-1" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input className="agenda-input mt-1 min-h-11" value={title} onChange={(e) => setTitle(e.target.value)} />
         </label>
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-wide text-subtle">
             Slug {editing ? "" : "(opcional, se genera del título)"}
           </span>
           <input
-            className="agenda-input mt-1"
+            className="agenda-input mt-1 min-h-11"
             placeholder="mi-post"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
@@ -71,7 +65,7 @@ export default function BlogAdminForm({
         <label className="block sm:col-span-2">
           <span className="text-xs font-semibold uppercase tracking-wide text-subtle">Descripción</span>
           <input
-            className="agenda-input mt-1"
+            className="agenda-input mt-1 min-h-11"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
@@ -81,7 +75,7 @@ export default function BlogAdminForm({
             Tags (separados por coma)
           </span>
           <input
-            className="agenda-input mt-1"
+            className="agenda-input mt-1 min-h-11"
             placeholder="Personal, Reflexión"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
@@ -99,15 +93,16 @@ export default function BlogAdminForm({
         </label>
       </div>
 
-      {error ? (
-        <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-600 dark:text-rose-400">
-          {error}
-        </p>
-      ) : null}
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
 
-      <button type="submit" className="btn btn-primary w-full sm:w-auto" disabled={!valid || submitting}>
-        {submitting ? "Guardando…" : editing ? "Guardar cambios" : "Publicar post"}
-      </button>
+      <div className="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end">
+        <button type="button" onClick={onCancel} className="btn btn-ghost min-h-11" disabled={submitting}>
+          Cancelar
+        </button>
+        <button type="submit" className="btn btn-primary min-h-11" disabled={!valid || submitting}>
+          {submitting ? "Guardando…" : editing ? "Guardar cambios" : "Publicar post"}
+        </button>
+      </div>
     </form>
   );
 }

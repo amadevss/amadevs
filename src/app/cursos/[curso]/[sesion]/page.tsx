@@ -1,50 +1,32 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 import {
   getStudentAttendance,
   getStudentSubmission,
-  getVisibleCourse,
-  getVisibleSession,
   listMaterials,
   listVisibleSessions,
-  submissionBlockedReason,
 } from "@/lib/cursos/queries";
-import { coursesBasePath } from "@/lib/cursos/server";
-import { getCurrentStudent, isEnrolled } from "@/lib/cursos/students";
+import { loadStudentSession, peekSessionTitle } from "@/lib/cursos/studentPage";
 import { ATTENDANCE_LABEL, ATTENDANCE_TONE, formatDateTime } from "@/lib/cursos/shared";
+import { DELIVERY_LABEL, DELIVERY_TONE, deliveryState } from "@/lib/cursos/status";
+import { Badge, Breadcrumbs, ButtonLink } from "@/components/ui/kit";
+import Icon from "@/components/ui/icons";
 import Markdown from "@/components/cursos/Markdown";
 import FileList from "@/components/cursos/FileList";
-import SubmissionPanel from "@/components/cursos/SubmissionForm";
 
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ curso: string; sesion: string }> };
 
-async function load(params: Props["params"]) {
-  const { curso, sesion } = await params;
-  const position = Number(sesion);
-  if (!Number.isInteger(position)) return null;
-  const course = await getVisibleCourse(curso);
-  if (!course) return null;
-  const session = await getVisibleSession(course.id, position);
-  if (!session) return null;
-  return { course, session };
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const data = await load(params);
-  return data ? { title: `${data.session.title} · ${data.course.title}` } : {};
+  const { curso, sesion } = await params;
+  const title = await peekSessionTitle(curso, sesion);
+  return title ? { title } : {};
 }
 
 export default async function SesionPage({ params }: Props) {
-  const data = await load(params);
-  if (!data) notFound();
-  const { course, session } = data;
-
-  // Solo alumnos inscritos; si no, al curso (ahí se registra o inscribe).
-  const [student, base] = await Promise.all([getCurrentStudent(), coursesBasePath()]);
-  if (!student || !(await isEnrolled(course.id, student.id))) redirect(`${base}/${course.slug}`);
+  const { curso, sesion } = await params;
+  const { course, session, student, base } = await loadStudentSession(curso, sesion);
 
   const [materials, sessions, submission, attendance] = await Promise.all([
     listMaterials(session.id),
@@ -55,16 +37,19 @@ export default async function SesionPage({ params }: Props) {
   const idx = sessions.findIndex((s) => s.id === session.id);
   const prev = sessions[idx - 1];
   const next = sessions[idx + 1];
-  const overdue = session.due_at ? new Date(session.due_at).getTime() < Date.now() : false;
+  const state = deliveryState(session, submission ? { submitted: true, grade: submission.grade } : undefined);
+  const courseHref = `${base}/${course.slug}`;
+  const entregaHref = `${courseHref}/${session.position}/entrega`;
 
   return (
     <>
-      <Link
-        href={`${base}/${course.slug}`}
-        className="mb-4 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-subtle transition-colors hover:text-primary-ink"
-      >
-        ← {course.title}
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: "Mis cursos", href: base || "/" },
+          { label: course.title, href: courseHref },
+          { label: `Sesión ${session.position}` },
+        ]}
+      />
 
       <article className="surface-card overflow-hidden">
         <div className="h-1 w-full" style={{ background: "var(--grad)" }} />
@@ -73,7 +58,7 @@ export default async function SesionPage({ params }: Props) {
             <div className="flex flex-wrap items-center gap-2">
               <p className="eyebrow">Sesión {session.position}</p>
               {attendance ? (
-                <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${ATTENDANCE_TONE[attendance]}`}>
+                <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${ATTENDANCE_TONE[attendance]}`}>
                   {ATTENDANCE_LABEL[attendance]}
                 </span>
               ) : null}
@@ -86,7 +71,10 @@ export default async function SesionPage({ params }: Props) {
 
           {materials.length > 0 ? (
             <section>
-              <h2 className="mb-3 font-display text-lg font-bold">Material de apoyo</h2>
+              <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-bold">
+                <Icon name="file" className="h-5 w-5 text-primary-ink" />
+                Material de apoyo
+              </h2>
               <FileList files={materials} />
             </section>
           ) : null}
@@ -94,36 +82,72 @@ export default async function SesionPage({ params }: Props) {
       </article>
 
       {session.accepts_submissions ? (
-        <section className="surface-card mt-5 p-5 sm:mt-6 sm:p-8">
-          <h2 className="font-display text-lg font-bold">Tu entregable</h2>
-          {session.due_at ? (
-            <p className={`mt-1 text-sm ${overdue ? "text-rose-600 dark:text-rose-400" : "text-subtle"}`}>
-              Fecha de entrega: {formatDateTime(session.due_at)}
-              {overdue && !submission ? " (vencida, aún puedes enviar)" : ""}
-            </p>
-          ) : null}
-          <div className="mt-5">
-            <SubmissionPanel
-              sessionId={session.id}
-              studentId={student.id}
-              submission={submission}
-              blockedReason={submissionBlockedReason(session, submission)}
-            />
+        <section className="surface-card mt-5 grid gap-4 p-5 sm:mt-6 sm:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="font-display text-lg font-bold">Tu entrega</h2>
+              <p className="mt-0.5 text-sm text-muted">
+                {session.due_at ? `Fecha límite: ${formatDateTime(session.due_at)}` : "Sin fecha límite"}
+              </p>
+            </div>
+            <Badge tone={DELIVERY_TONE[state]}>{DELIVERY_LABEL[state]}</Badge>
           </div>
+
+          {submission?.grade || submission?.feedback ? (
+            <div className="rounded-xl border border-primary/30 bg-primary-soft px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary-ink">Revisión del profesor</p>
+              {submission.grade ? <p className="mt-1 font-display text-2xl font-bold">{submission.grade}</p> : null}
+              {submission.feedback ? <p className="mt-1 whitespace-pre-line text-sm">{submission.feedback}</p> : null}
+            </div>
+          ) : submission ? (
+            <p className="text-sm text-muted">
+              Enviaste {submission.files.length} {submission.files.length === 1 ? "archivo" : "archivos"} el{" "}
+              {formatDateTime(submission.updated_at)}. Tu profesor aún no la califica.
+            </p>
+          ) : (
+            <p className="text-sm text-muted">
+              {state === "vencida"
+                ? "La fecha límite ya pasó, pero aún puedes enviar tu entrega."
+                : "Sube fotos, videos, PDF u otros archivos, con un comentario si quieres."}
+            </p>
+          )}
+
+          <ButtonLink
+            href={entregaHref}
+            variant={submission ? "ghost" : "primary"}
+            icon={submission ? "eye" : "upload"}
+            className="w-full sm:w-auto sm:justify-self-start"
+          >
+            {submission ? "Ver mi entrega" : "Subir mi entrega"}
+          </ButtonLink>
         </section>
       ) : null}
 
-      <nav className="mt-5 grid grid-cols-2 gap-3 text-sm sm:mt-6">
+      <nav aria-label="Otras sesiones" className="mt-5 grid grid-cols-2 gap-3 sm:mt-6">
         {prev ? (
-          <Link href={`${base}/${course.slug}/${prev.position}`} className="btn btn-ghost min-h-11">
-            ← Sesión {prev.position}
+          <Link
+            href={`${courseHref}/${prev.position}`}
+            className="surface-card flex min-h-14 items-center gap-2 px-4 py-3 text-sm transition hover:bg-surface-2"
+          >
+            <Icon name="chevronLeft" className="h-4 w-4 shrink-0 text-subtle" />
+            <span className="min-w-0">
+              <span className="block text-xs text-subtle">Sesión {prev.position}</span>
+              <span className="block truncate font-medium">{prev.title}</span>
+            </span>
           </Link>
         ) : (
           <span />
         )}
         {next ? (
-          <Link href={`${base}/${course.slug}/${next.position}`} className="btn btn-ghost min-h-11">
-            Sesión {next.position} →
+          <Link
+            href={`${courseHref}/${next.position}`}
+            className="surface-card flex min-h-14 items-center justify-end gap-2 px-4 py-3 text-right text-sm transition hover:bg-surface-2"
+          >
+            <span className="min-w-0">
+              <span className="block text-xs text-subtle">Sesión {next.position}</span>
+              <span className="block truncate font-medium">{next.title}</span>
+            </span>
+            <Icon name="chevronRight" className="h-4 w-4 shrink-0 text-subtle" />
           </Link>
         ) : null}
       </nav>
