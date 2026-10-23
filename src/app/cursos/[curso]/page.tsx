@@ -10,7 +10,9 @@ import {
 import { coursesBasePath } from "@/lib/cursos/server";
 import { getCurrentStudent, isEnrolled } from "@/lib/cursos/students";
 import { ATTENDANCE_LABEL, ATTENDANCE_TONE, formatDateTime } from "@/lib/cursos/shared";
-import AuthForms from "@/components/cursos/AuthForms";
+import { DELIVERY_LABEL, DELIVERY_TONE, deliveryState } from "@/lib/cursos/status";
+import { Badge, Breadcrumbs, ButtonLink, EmptyState, ProgressBar } from "@/components/ui/kit";
+import Icon from "@/components/ui/icons";
 import { EnrollButton } from "@/components/cursos/StudentActions";
 
 export const dynamic = "force-dynamic";
@@ -30,31 +32,44 @@ export default async function CursoPage({ params }: Props) {
 
   const header = (
     <header className="mb-6">
-      <p className="eyebrow">Curso</p>
-      <h1 className="mt-3 font-display text-3xl font-bold tracking-tight sm:text-4xl">{course.title}</h1>
+      {enrolled ? <Breadcrumbs items={[{ label: "Mis cursos", href: base || "/" }, { label: course.title }]} /> : <p className="eyebrow mb-3">Curso</p>}
+      <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{course.title}</h1>
       {course.description ? <p className="mt-3 whitespace-pre-line text-muted">{course.description}</p> : null}
     </header>
   );
 
   if (!student) {
+    const qs = `?curso=${encodeURIComponent(course.slug)}`;
     return (
       <div className="mx-auto max-w-md">
         {header}
-        <p className="mb-4 text-sm text-muted">Crea tu cuenta para inscribirte y ver las sesiones.</p>
-        <AuthForms courseSlug={course.slug} />
+        <div className="surface-card grid grid-cols-1 gap-4 p-5 sm:p-6">
+          <p className="flex items-start gap-3 text-sm text-muted">
+            <span className="grid grid-cols-1 h-9 w-9 shrink-0 place-items-center rounded-full bg-primary-soft text-primary-ink">
+              <Icon name="lock" className="h-4 w-4" />
+            </span>
+            Para ver las sesiones y entregar tareas necesitas una cuenta. Te inscribimos al curso en el mismo paso.
+          </p>
+          <ButtonLink href={`${base}/registro${qs}`} className="w-full min-h-12 text-base">
+            Crear cuenta e inscribirme
+          </ButtonLink>
+          <ButtonLink href={`${base}/entrar${qs}`} variant="ghost" className="w-full">
+            Ya tengo cuenta
+          </ButtonLink>
+        </div>
       </div>
     );
   }
 
   if (!enrolled) {
     return (
-      <>
+      <div className="mx-auto max-w-md">
         {header}
-        <div className="surface-card p-5 sm:p-6">
-          <p className="mb-4 text-sm text-muted">Aún no estás inscrito en este curso.</p>
+        <div className="surface-card grid grid-cols-1 gap-4 p-5 sm:p-6">
+          <p className="text-sm text-muted">Aún no estás inscrito en este curso. Inscríbete para ver sus sesiones.</p>
           <EnrollButton courseSlug={course.slug} />
         </div>
-      </>
+      </div>
     );
   }
 
@@ -64,24 +79,45 @@ export default async function CursoPage({ params }: Props) {
   ]);
   const byId = new Map(statuses.map((s) => [s.session_id, s]));
   const pct = attendancePercent(statuses.map((s) => s.attendance));
+  const now = Date.now();
+  const withDelivery = sessions.filter((s) => s.accepts_submissions);
+  const done = withDelivery.filter((s) => byId.get(s.id)?.submitted).length;
 
   return (
     <>
       {header}
 
-      {pct !== null ? (
-        <div className="mb-6 flex items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3 text-sm">
-          <span className="text-muted">Tu asistencia</span>
-          <span className="font-display text-xl font-bold">{pct}%</span>
-        </div>
+      {sessions.length > 0 ? (
+        <section className="surface-card mb-6 grid grid-cols-1 gap-4 p-4 sm:p-5">
+          <dl className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-subtle">Asistencia</dt>
+              <dd className="font-display text-2xl font-bold">{pct === null ? "—" : `${pct}%`}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-subtle">Entregas</dt>
+              <dd className="font-display text-2xl font-bold">
+                {done}/{withDelivery.length}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] uppercase tracking-wide text-subtle">Sesiones</dt>
+              <dd className="font-display text-2xl font-bold">{sessions.length}</dd>
+            </div>
+          </dl>
+          {withDelivery.length > 0 ? <ProgressBar value={(done / withDelivery.length) * 100} label="Entregas hechas" /> : null}
+        </section>
       ) : null}
 
       {sessions.length === 0 ? (
-        <p className="text-muted">Aún no hay sesiones publicadas.</p>
+        <EmptyState icon="clock" title="Aún no hay sesiones publicadas">
+          Tu profesor las irá publicando; vuelve pronto.
+        </EmptyState>
       ) : (
-        <ol className="grid gap-3">
+        <ol className="grid grid-cols-1 gap-3">
           {sessions.map((s) => {
             const st = byId.get(s.id);
+            const state = deliveryState(s, st, now);
             return (
               <li key={s.id}>
                 <Link
@@ -89,35 +125,34 @@ export default async function CursoPage({ params }: Props) {
                   className="surface-card flex items-start gap-3 p-4 transition active:scale-[0.99] sm:gap-4 sm:p-5 sm:hover:-translate-y-0.5 sm:hover:shadow-[var(--shadow-md)]"
                 >
                   <span
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-bold text-white"
-                    style={{ background: "var(--grad)" }}
+                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-bold ${
+                      state === "calificada" || state === "entregada" ? "bg-emerald-500 text-white" : "text-white"
+                    }`}
+                    style={state === "calificada" || state === "entregada" ? undefined : { background: "var(--grad)" }}
                   >
-                    {s.position}
+                    {state === "calificada" || state === "entregada" ? <Icon name="check" className="h-5 w-5" /> : s.position}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold">{s.title}</span>
+                    <span className="block text-xs text-subtle">Sesión {s.position}</span>
+                    <span className="block font-semibold leading-snug">{s.title}</span>
                     {s.description ? (
-                      <span className="mt-0.5 block text-sm text-muted line-clamp-2">{s.description}</span>
+                      <span className="mt-0.5 line-clamp-2 block text-sm text-muted">{s.description}</span>
                     ) : null}
-                    <span className="mt-2 flex flex-wrap gap-1.5 text-xs">
+                    <span className="mt-2 flex flex-wrap gap-1.5">
+                      {state !== "ninguna" ? (
+                        <Badge tone={DELIVERY_TONE[state]}>
+                          {state === "calificada" && st?.grade ? `Calificación: ${st.grade}` : DELIVERY_LABEL[state]}
+                          {state === "pendiente" && s.due_at ? ` · ${formatDateTime(s.due_at)}` : ""}
+                        </Badge>
+                      ) : null}
                       {st?.attendance ? (
-                        <span className={`rounded-full border px-2 py-0.5 font-medium ${ATTENDANCE_TONE[st.attendance]}`}>
+                        <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${ATTENDANCE_TONE[st.attendance]}`}>
                           {ATTENDANCE_LABEL[st.attendance]}
                         </span>
                       ) : null}
-                      {s.accepts_submissions ? (
-                        st?.submitted ? (
-                          <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-medium text-emerald-700 dark:text-emerald-400">
-                            {st.grade ? `Calificación: ${st.grade}` : "Entregado"}
-                          </span>
-                        ) : (
-                          <span className="rounded-full border border-border bg-surface-2 px-2 py-0.5 text-subtle">
-                            Pendiente{s.due_at ? ` · ${formatDateTime(s.due_at)}` : ""}
-                          </span>
-                        )
-                      ) : null}
                     </span>
                   </span>
+                  <Icon name="chevronRight" className="mt-3 h-5 w-5 shrink-0 text-subtle" />
                 </Link>
               </li>
             );

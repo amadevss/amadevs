@@ -471,17 +471,26 @@ export async function courseExists(id: string): Promise<boolean> {
   return rows.length > 0;
 }
 
-export type ProfileCourse = Course & {
-  sessions: { id: string; position: number; title: string; attendance: AttendanceStatus | null; grade: string | null; submitted: boolean; accepts_submissions: boolean }[];
+export type ProfileSession = {
+  id: string;
+  position: number;
+  title: string;
+  attendance: AttendanceStatus | null;
+  grade: string | null;
+  submitted: boolean;
+  accepts_submissions: boolean;
+  due_at: string | null;
 };
+
+export type ProfileCourse = Course & { session_count: number; sessions: ProfileSession[] };
 
 /** Resumen para el perfil del alumno: por curso, asistencia y calificaciones. */
 export async function getStudentProfile(studentId: string): Promise<ProfileCourse[]> {
   const courses = await listStudentCourses(studentId);
   if (courses.length === 0) return [];
   const ids = courses.map((c) => c.id);
-  const { rows } = await sql<ProfileCourse["sessions"][number] & { course_id: string }>`
-    select s.id, s.course_id, s.position, s.title, s.accepts_submissions,
+  const { rows } = await sql<ProfileSession & { course_id: string }>`
+    select s.id, s.course_id, s.position, s.title, s.accepts_submissions, s.due_at,
            a.status as attendance, x.grade, (x.id is not null) as submitted
     from course_session s
     left join course_attendance a on a.session_id = s.id and a.student_id = ${studentId}
@@ -489,4 +498,110 @@ export async function getStudentProfile(studentId: string): Promise<ProfileCours
     where s.course_id = any(${ids as unknown as string}) and not s.hidden
     order by s.position`;
   return courses.map((c) => ({ ...c, sessions: rows.filter((r) => r.course_id === c.id) }));
+}
+
+/* ───────────── Dashboard: vistas por ruta ───────────── */
+
+export type CourseOverview = Course & {
+  session_count: number;
+  student_count: number;
+  submission_count: number;
+  ungraded_count: number;
+};
+
+/** Cursos con sus totales, para la lista del dashboard. */
+export async function listCoursesOverview(): Promise<CourseOverview[]> {
+  const { rows } = await sql<CourseOverview>`
+    select c.*,
+      (select count(*)::int from course_session s where s.course_id = c.id) as session_count,
+      (select count(*)::int from course_enrollment e where e.course_id = c.id) as student_count,
+      (select count(*)::int from course_submission x join course_session s on s.id = x.session_id
+        where s.course_id = c.id) as submission_count,
+      (select count(*)::int from course_submission x join course_session s on s.id = x.session_id
+        where s.course_id = c.id and x.grade is null) as ungraded_count
+    from course c order by c.created_at desc`;
+  return rows;
+}
+
+export type SessionOverview = CourseSession & {
+  material_count: number;
+  submission_count: number;
+  ungraded_count: number;
+  attendance_count: number;
+};
+
+export type DashboardCourse = Course & { student_count: number; sessions: SessionOverview[] };
+
+export async function getDashboardCourse(id: string): Promise<DashboardCourse | null> {
+  if (!isUuid(id)) return null;
+  const [course, sessions, students] = await Promise.all([
+    sql<Course>`select * from course where id = ${id} limit 1`,
+    sql<SessionOverview>`
+      select s.*,
+        (select count(*)::int from course_material m where m.session_id = s.id) as material_count,
+        (select count(*)::int from course_submission x where x.session_id = s.id) as submission_count,
+        (select count(*)::int from course_submission x where x.session_id = s.id and x.grade is null) as ungraded_count,
+        (select count(*)::int from course_attendance a where a.session_id = s.id) as attendance_count
+      from course_session s where s.course_id = ${id} order by s.position`,
+    sql<{ n: number }>`select count(*)::int as n from course_enrollment where course_id = ${id}`,
+  ]);
+  if (!course.rows[0]) return null;
+  return { ...course.rows[0], student_count: students.rows[0]?.n ?? 0, sessions: sessions.rows };
+}
+
+export type DashboardSession = SessionOverview & {
+  course: Pick<Course, "id" | "slug" | "title">;
+  student_count: number;
+};
+
+export async function getDashboardSession(courseId: string, sessionId: string): Promise<DashboardSession | null> {
+  if (!isUuid(courseId) || !isUuid(sessionId)) return null;
+  const { rows } = await sql<SessionOverview & { c_id: string; c_slug: string; c_title: string; student_count: number }>`
+    select s.*, c.id as c_id, c.slug as c_slug, c.title as c_title,
+      (select count(*)::int from course_material m where m.session_id = s.id) as material_count,
+      (select count(*)::int from course_submission x where x.session_id = s.id) as submission_count,
+      (select count(*)::int from course_submission x where x.session_id = s.id and x.grade is null) as ungraded_count,
+      (select count(*)::int from course_attendance a where a.session_id = s.id) as attendance_count,
+      (select count(*)::int from course_enrollment e where e.course_id = c.id) as student_count
+    from course_session s join course c on c.id = s.course_id
+    where s.id = ${sessionId} and s.course_id = ${courseId} limit 1`;
+  const r = rows[0];
+  if (!r) return null;
+  const { c_id, c_slug, c_title, ...session } = r;
+  return { ...session, course: { id: c_id, slug: c_slug, title: c_title } };
+}
+
+export type PendingReview = {
+  id: string;
+  student_name: string;
+  updated_at: string;
+  session_id: string;
+  session_position: number;
+  session_title: string;
+  course_id: string;
+  course_title: string;
+};
+
+/** Entregas sin calificar, las más recientes primero. */
+export async function listPendingReviews(limit = 6): Promise<{ total: number; items: PendingReview[] }> {
+  const [items, total] = await Promise.all([
+    sql<PendingReview>`
+      select x.id, x.student_name, x.updated_at, s.id as session_id, s.position as session_position,
+             s.title as session_title, c.id as course_id, c.title as course_title
+      from course_submission x
+      join course_session s on s.id = x.session_id
+      join course c on c.id = s.course_id
+      where x.grade is null
+      order by x.updated_at desc limit ${limit}`,
+    sql<{ n: number }>`select count(*)::int as n from course_submission where grade is null`,
+  ]);
+  return { total: total.rows[0]?.n ?? 0, items: items.rows };
+}
+
+export async function countStudents(): Promise<{ total: number; lastWeek: number }> {
+  const { rows } = await sql<{ total: number; last_week: number }>`
+    select count(*)::int as total,
+           count(*) filter (where created_at > now() - interval '7 days')::int as last_week
+    from student`;
+  return { total: rows[0]?.total ?? 0, lastWeek: rows[0]?.last_week ?? 0 };
 }

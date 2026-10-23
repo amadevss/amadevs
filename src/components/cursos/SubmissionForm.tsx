@@ -1,7 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useFeedback } from "@/components/ui/feedback";
+import { ErrorNote } from "@/components/ui/kit";
+import Icon from "@/components/ui/icons";
 import { uploadCourseFile } from "@/lib/cursos/upload";
 import { formatBytes, formatDateTime, MAX_SUBMISSION_BYTES, MAX_SUBMISSION_FILES } from "@/lib/cursos/shared";
 import type { CourseSubmission } from "@/lib/cursos/queries";
@@ -16,17 +20,47 @@ export default function SubmissionPanel({
   studentId,
   submission,
   blockedReason,
+  sessionHref,
+  courseHref,
 }: {
   sessionId: string;
   studentId: string;
   submission: CourseSubmission | null;
   blockedReason: string | null;
+  sessionHref: string;
+  courseHref: string;
 }) {
   const [editing, setEditing] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  if (sent) {
+    return (
+      <div className="grid grid-cols-1 justify-items-center gap-3 py-6 text-center">
+        <span className="grid grid-cols-1 h-16 w-16 place-items-center rounded-full bg-emerald-500/12 text-emerald-600 dark:text-emerald-400">
+          <Icon name="check" className="h-8 w-8" />
+        </span>
+        <p className="font-display text-xl font-bold">¡Entrega enviada!</p>
+        <p className="max-w-sm text-sm text-muted">
+          Tu profesor ya puede verla. Te avisaremos aquí mismo cuando la califique.
+        </p>
+        <div className="mt-2 flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Link href={sessionHref} className="btn btn-primary min-h-11">
+            Volver a la sesión
+          </Link>
+          <Link href={courseHref} className="btn btn-ghost min-h-11">
+            Ir al curso
+          </Link>
+        </div>
+        <button type="button" onClick={() => setSent(false)} className="mt-1 min-h-10 text-sm text-subtle hover:text-fg">
+          Ver lo que envié
+        </button>
+      </div>
+    );
+  }
 
   if (submission && !editing) {
     return (
-      <div className="grid gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm">
           <p className="font-semibold text-emerald-700 dark:text-emerald-400">Entregado ✓</p>
           <p className="text-xs text-muted">Última actualización: {formatDateTime(submission.updated_at)}</p>
@@ -59,6 +93,10 @@ export default function SubmissionPanel({
       studentId={studentId}
       previous={submission}
       onCancel={submission ? () => setEditing(false) : undefined}
+      onSent={() => {
+        setEditing(false);
+        setSent(true);
+      }}
     />
   );
 }
@@ -68,19 +106,23 @@ function SubmissionForm({
   studentId,
   previous,
   onCancel,
+  onSent,
 }: {
   sessionId: string;
   studentId: string;
   previous: CourseSubmission | null;
   onCancel?: () => void;
+  onSent: () => void;
 }) {
   const router = useRouter();
+  const { toast } = useFeedback();
   const [comment, setComment] = useState(previous?.comment ?? "");
   const [kept, setKept] = useState(previous?.files ?? []);
   const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState<Record<number, number>>({});
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const room = MAX_SUBMISSION_FILES - kept.length;
 
@@ -121,10 +163,12 @@ function SubmissionForm({
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "No se pudo enviar la entrega");
+      toast.success(previous ? "Entrega actualizada" : "Entrega enviada");
       router.refresh();
-      onCancel?.();
+      onSent();
     } catch (err) {
       setError((err as Error).message);
+      toast.error("No se pudo enviar. Revisa tu conexión e intenta de nuevo.");
     } finally {
       setSending(false);
     }
@@ -133,7 +177,7 @@ function SubmissionForm({
   const valid = kept.length + files.length > 0 || comment.trim().length > 0;
 
   return (
-    <form onSubmit={submit} className="grid gap-4">
+    <form onSubmit={submit} className="grid grid-cols-1 gap-4">
       {kept.length > 0 ? (
         <div>
           <span className="text-xs font-semibold uppercase tracking-wide text-subtle">Archivos que ya subiste</span>
@@ -152,40 +196,64 @@ function SubmissionForm({
           Archivos (fotos, video, PDF, etc.)
         </span>
         <label
-          className={`mt-1 flex min-h-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border-strong bg-surface-2 px-4 py-6 text-center text-sm text-muted transition hover:border-primary ${
-            room <= 0 || sending ? "pointer-events-none opacity-50" : ""
-          }`}
-          onDragOver={(e) => e.preventDefault()}
+          className={`mt-1 flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-6 text-center text-sm text-muted transition ${
+            dragging ? "border-primary bg-primary-soft" : "border-border-strong bg-surface-2 hover:border-primary/60"
+          } ${room <= 0 || sending ? "pointer-events-none opacity-50" : ""}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
           onDrop={(e) => {
             e.preventDefault();
+            setDragging(false);
             addFiles(e.dataTransfer.files);
           }}
         >
-          <span className="font-medium text-fg">Toca para tomar foto o elegir archivos</span>
+          <span className="grid grid-cols-1 h-12 w-12 place-items-center rounded-full bg-primary-soft text-primary-ink">
+            <Icon name="upload" className="h-6 w-6" />
+          </span>
+          <span className="font-medium text-fg">
+            {room <= 0 ? "Llegaste al máximo de archivos" : "Toca para tomar foto o elegir archivos"}
+          </span>
           <span className="text-xs">
             Hasta {MAX_SUBMISSION_FILES} archivos, {formatBytes(MAX_SUBMISSION_BYTES)} c/u
           </span>
           <input ref={inputRef} type="file" multiple className="sr-only" onChange={(e) => addFiles(e.target.files)} />
         </label>
         {files.length > 0 ? (
-          <ul className="mt-2 grid gap-1.5 text-sm">
-            {files.map((f, i) => (
-              <li key={i} className="flex min-h-11 items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-1.5">
-                <span className="min-w-0 truncate">{f.name}</span>
-                <span className="flex shrink-0 items-center gap-3 text-xs text-subtle">
-                  {sending ? `${Math.round(progress[i] ?? 0)}%` : formatBytes(f.size)}
-                  {!sending ? (
-                    <button
-                      type="button"
-                      className="p-1 text-rose-600 hover:underline dark:text-rose-400"
-                      onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
-                    >
-                      Quitar
-                    </button>
+          <ul className="mt-3 grid grid-cols-1 gap-2 text-sm" aria-live="polite">
+            {files.map((f, i) => {
+              const pct = Math.round(progress[i] ?? 0);
+              return (
+                <li key={i} className="grid grid-cols-1 gap-1.5 rounded-xl border border-border bg-surface px-3 py-2.5">
+                  <div className="flex min-h-8 items-center justify-between gap-3">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Icon name="file" className="h-4 w-4 shrink-0 text-subtle" />
+                      <span className="truncate">{f.name}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2 text-xs text-subtle">
+                      {sending ? (pct >= 100 ? <Icon name="check" className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> : `${pct}%`) : formatBytes(f.size)}
+                      {!sending ? (
+                        <button
+                          type="button"
+                          aria-label={`Quitar ${f.name}`}
+                          className="grid grid-cols-1 h-8 w-8 place-items-center rounded-full text-rose-600 transition hover:bg-rose-500/10 dark:text-rose-400"
+                          onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
+                        >
+                          <Icon name="x" className="h-4 w-4" />
+                        </button>
+                      ) : null}
+                    </span>
+                  </div>
+                  {sending ? (
+                    <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+                      <div className="h-full rounded-full transition-[width]" style={{ width: `${pct}%`, background: "var(--grad)" }} />
+                    </div>
                   ) : null}
-                </span>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         ) : null}
       </div>
@@ -200,13 +268,11 @@ function SubmissionForm({
         />
       </label>
 
-      {error ? (
-        <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-600 dark:text-rose-400">{error}</p>
-      ) : null}
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <button type="submit" className="btn btn-primary min-h-11 w-full sm:w-auto" disabled={!valid || sending}>
-          {sending ? "Enviando…" : previous ? "Guardar cambios" : "Enviar entrega"}
+          {sending ? "Subiendo y enviando…" : previous ? "Guardar cambios" : "Enviar entrega"}
         </button>
         {onCancel ? (
           <button type="button" className="btn btn-ghost min-h-11 w-full sm:w-auto" onClick={onCancel} disabled={sending}>

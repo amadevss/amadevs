@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import type { BookingWithService, Service } from "@/lib/agenda/types";
+import { ErrorNote } from "@/components/ui/kit";
 
 export interface ManualBookingPrefill {
   date?: string;
@@ -75,25 +76,14 @@ export default function ManualBookingForm({
   }
 
   return (
-    <form onSubmit={submit} className="surface-card grid gap-4 p-5 sm:p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-base font-bold">Nueva reserva manual</h2>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="text-sm text-muted transition hover:text-fg"
-        >
-          Cerrar
-        </button>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={submit} className="surface-card grid grid-cols-1 gap-5 p-5 sm:p-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-wide text-subtle">
             Servicio
           </span>
           <select
-            className="agenda-input mt-1"
+            className="agenda-input mt-1 min-h-11"
             value={serviceSlug}
             onChange={(e) => onServiceChange(e.target.value)}
           >
@@ -109,7 +99,7 @@ export default function ManualBookingForm({
             Precio (MXN)
           </span>
           <input
-            className="agenda-input mt-1"
+            className="agenda-input mt-1 min-h-11"
             type="number"
             min="0"
             step="0.01"
@@ -122,7 +112,7 @@ export default function ManualBookingForm({
             Fecha
           </span>
           <input
-            className="agenda-input mt-1"
+            className="agenda-input mt-1 min-h-11"
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
@@ -133,7 +123,7 @@ export default function ManualBookingForm({
             Hora (Tijuana)
           </span>
           <input
-            className="agenda-input mt-1"
+            className="agenda-input mt-1 min-h-11"
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
@@ -144,7 +134,7 @@ export default function ManualBookingForm({
             Nombre *
           </span>
           <input
-            className="agenda-input mt-1"
+            className="agenda-input mt-1 min-h-11"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -154,7 +144,7 @@ export default function ManualBookingForm({
             Correo *
           </span>
           <input
-            className="agenda-input mt-1"
+            className="agenda-input mt-1 min-h-11"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -165,7 +155,7 @@ export default function ManualBookingForm({
             Empresa
           </span>
           <input
-            className="agenda-input mt-1"
+            className="agenda-input mt-1 min-h-11"
             value={company}
             onChange={(e) => setCompany(e.target.value)}
           />
@@ -182,19 +172,16 @@ export default function ManualBookingForm({
         </label>
       </div>
 
-      {error ? (
-        <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-600 dark:text-rose-400">
-          {error}
-        </p>
-      ) : null}
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
 
-      <button
-        type="submit"
-        className="btn btn-primary w-full sm:w-auto"
-        disabled={!valid || submitting}
-      >
-        {submitting ? "Guardando…" : "Crear reserva confirmada"}
-      </button>
+      <div className="flex flex-col-reverse gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end">
+        <button type="button" onClick={onCancel} className="btn btn-ghost min-h-11" disabled={submitting}>
+          Cancelar
+        </button>
+        <button type="submit" className="btn btn-primary min-h-11" disabled={!valid || submitting}>
+          {submitting ? "Guardando…" : "Crear reserva confirmada"}
+        </button>
+      </div>
     </form>
   );
 }

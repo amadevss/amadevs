@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 const MAIN_SITE_PATHS = ["/blog", "/agenda", "/dashboard", "/recibo"];
 const PROD_DOMAIN = "bryanoliveros.com";
+const DASHBOARD_PATH_HEADER = "x-dashboard-path";
 
 export function middleware(req: NextRequest) {
   const host = (req.headers.get("host") ?? "").split(":")[0];
@@ -20,6 +21,12 @@ export function middleware(req: NextRequest) {
     if (isProdMain && (pathname === "/cursos" || pathname.startsWith("/cursos/"))) {
       const rest = pathname.slice("/cursos".length) || "/";
       return NextResponse.redirect(`https://cursos.${PROD_DOMAIN}${rest}${search}`, 308);
+    }
+    // El dashboard necesita la ruta pedida para volver a ella tras el login.
+    if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
+      const headers = new Headers(req.headers);
+      headers.set(DASHBOARD_PATH_HEADER, `${pathname}${search}`);
+      return NextResponse.next({ request: { headers } });
     }
     return NextResponse.next();
   }

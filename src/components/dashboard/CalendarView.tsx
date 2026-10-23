@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { DateTime } from "luxon";
 import { STATUS_TONE } from "@/lib/agenda/format";
 import type { Blackout, BookingWithService, Service } from "@/lib/agenda/types";
+import { useFeedback } from "@/components/ui/feedback";
 
 const WEEKDAY_LABELS = ["D", "L", "M", "M", "J", "V", "S"];
 const MONTHS = [
@@ -43,6 +44,7 @@ export default function CalendarView({
   businessTimezone: string;
   onPickSlot: (args: { date: string; time?: string; serviceSlug?: string }) => void;
 }) {
+  const { toast, confirm } = useFeedback();
   const today = DateTime.now().setZone(businessTimezone);
   const todayIso = today.toISODate() ?? "";
   const [view, setView] = useState({ year: today.year, month: today.month - 1 });
@@ -104,6 +106,7 @@ export default function CalendarView({
       if (!r.ok) throw new Error(j.error || "No se pudo crear el bloqueo");
       setBlackouts((prev) => [j.blackout as Blackout, ...prev]);
       setShowBlackoutForm(false);
+      toast.success("Horario bloqueado");
     } catch (err) {
       setBlackoutError((err as Error).message);
     } finally {
@@ -112,14 +115,21 @@ export default function CalendarView({
   }
 
   async function removeBlackout(id: string) {
-    if (!window.confirm("¿Quitar este bloqueo?")) return;
+    const ok = await confirm({
+      title: "¿Quitar este bloqueo?",
+      message: "Esas horas volverán a estar disponibles para reservar.",
+      confirmLabel: "Quitar bloqueo",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       const r = await fetch(`/api/dashboard/blackouts/${id}`, { method: "DELETE" });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "No se pudo quitar el bloqueo");
       setBlackouts((prev) => prev.filter((b) => b.id !== id));
+      toast.success("Bloqueo quitado");
     } catch (err) {
-      window.alert((err as Error).message);
+      toast.error((err as Error).message);
     }
   }
 
@@ -184,7 +194,7 @@ export default function CalendarView({
   const selectedBlackouts = selectedDate ? blackoutsForDay(selectedDate) : [];
 
   return (
-    <div className="surface-card grid gap-6 p-5 sm:grid-cols-[minmax(0,20rem)_1fr] sm:p-6">
+    <div className="surface-card grid grid-cols-1 gap-6 p-5 sm:grid-cols-[minmax(0,20rem)_1fr] sm:p-6">
       {/* Calendario */}
       <div>
         <div className="flex items-center justify-between">
@@ -264,7 +274,7 @@ export default function CalendarView({
               {DateTime.fromISO(selectedDate).setLocale("es").toFormat("cccc d 'de' LLLL yyyy")}
             </p>
 
-            <div className="mt-3 grid gap-2">
+            <div className="mt-3 grid grid-cols-1 gap-2">
               {selectedBookings.length === 0 ? (
                 <p className="text-sm text-subtle">Sin reservaciones este día.</p>
               ) : (
@@ -302,7 +312,7 @@ export default function CalendarView({
               {selectedBlackouts.length === 0 ? (
                 <p className="mt-2 text-sm text-subtle">Sin bloqueos este día.</p>
               ) : (
-                <div className="mt-2 grid gap-2">
+                <div className="mt-2 grid grid-cols-1 gap-2">
                   {selectedBlackouts.map((b) => (
                     <div
                       key={b.id}
@@ -327,7 +337,7 @@ export default function CalendarView({
               )}
 
               {showBlackoutForm ? (
-                <form onSubmit={submitBlackout} className="mt-3 grid gap-3 rounded-lg border border-border p-3">
+                <form onSubmit={submitBlackout} className="mt-3 grid grid-cols-1 gap-3 rounded-lg border border-border p-3">
                   <div className="grid grid-cols-2 gap-3">
                     <label className="block">
                       <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-subtle">
