@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import Icon, { type IconName } from "@/components/ui/icons";
+import AppBrand from "@/components/ui/AppBrand";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type NavItem = { href: string; label: string; icon: IconName; exact?: boolean };
 
@@ -38,16 +40,20 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     router.refresh();
   }
 
+  const current = NAV.find((n) => isActive(pathname, n));
   const mainItems = NAV.filter((n) => MOBILE_MAIN.includes(n.href));
   const moreItems = NAV.filter((n) => !MOBILE_MAIN.includes(n.href));
   const moreActive = moreItems.some((n) => isActive(pathname, n));
 
   return (
-    <div className="pb-28 pt-2 lg:grid lg:grid-cols-[12.5rem_minmax(0,1fr)] lg:gap-8 lg:pb-16 lg:pt-6">
+    <div className="min-h-dvh">
       {/* Barra lateral (computadora) */}
-      <aside className="hidden lg:block">
-        <div className="sticky top-24 grid grid-cols-1 gap-1">
-          <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-subtle">Dashboard</p>
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-border bg-surface lg:flex">
+        <div className="flex h-16 items-center px-5">
+          <AppBrand href="/dashboard" label="Dashboard" />
+        </div>
+        <nav aria-label="Dashboard" className="grid flex-1 content-start grid-cols-1 gap-1 overflow-y-auto px-3 py-2">
+          <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-subtle">Menú</p>
           {NAV.map((item) => {
             const active = isActive(pathname, item);
             return (
@@ -64,7 +70,15 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
               </Link>
             );
           })}
-          <div className="my-3 h-px bg-border" />
+        </nav>
+        <div className="grid grid-cols-1 gap-1 border-t border-border px-3 py-3">
+          <Link
+            href="/"
+            className="flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg"
+          >
+            <Icon name="external" className="h-[18px] w-[18px]" />
+            Ver sitio
+          </Link>
           <button
             type="button"
             onClick={logout}
@@ -77,7 +91,34 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="min-w-0">{children}</div>
+      <div className="lg:pl-60">
+        {/* Barra superior */}
+        <header
+          className="sticky top-0 z-30 border-b border-border"
+          style={{ backgroundColor: "color-mix(in srgb, var(--bg) 88%, transparent)", backdropFilter: "blur(10px)" }}
+        >
+          <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:h-16 lg:px-8">
+            <div className="min-w-0 lg:hidden">
+              <AppBrand href="/dashboard" label={current?.label ?? "Dashboard"} />
+            </div>
+            <p className="hidden min-w-0 truncate font-display text-lg font-semibold tracking-tight lg:block">
+              {current?.label ?? "Dashboard"}
+            </p>
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href="/"
+                aria-label="Ver sitio"
+                className="grid h-9 w-9 place-items-center rounded-full border border-border-strong bg-surface text-fg shadow-[var(--shadow-sm)] transition hover:-translate-y-0.5 lg:hidden"
+              >
+                <Icon name="external" className="h-[18px] w-[18px]" />
+              </Link>
+              <ThemeToggle />
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-6xl px-4 pb-28 pt-5 sm:px-6 sm:pt-6 lg:px-8 lg:pb-16 lg:pt-8">{children}</main>
+      </div>
 
       {/* Barra inferior (celular) */}
       <nav
