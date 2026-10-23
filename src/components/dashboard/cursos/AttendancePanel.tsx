@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import type { AttendanceRow, AttendanceStatus } from "@/lib/cursos/queries";
 import { ATTENDANCE_LABEL, ATTENDANCE_TONE } from "@/lib/cursos/shared";
 import { useFeedback } from "@/components/ui/feedback";
@@ -27,7 +27,6 @@ export default function AttendancePanel({
   const [savedOnce, setSavedOnce] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [query, setQuery] = useState("");
-  const [, startRefresh] = useTransition();
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { sin: 0 };
@@ -52,8 +51,6 @@ export default function AttendancePanel({
       });
       if (!r.ok) throw new Error();
       setSavedOnce(true);
-      // Actualiza el contador de la pestaña sin tocar la lista.
-      startRefresh(() => router.refresh());
     } catch {
       setRows(before);
       toast.error("No se pudo guardar la asistencia. Revisa tu conexión.");
@@ -183,7 +180,14 @@ export default function AttendancePanel({
                     r.status === st ? ATTENDANCE_TONE[st] : "border-border text-subtle hover:bg-surface-2"
                   }`}
                 >
-                  {ATTENDANCE_LABEL[st]}
+                  {st === "justificada" ? (
+                    <>
+                      <span className="sm:hidden">Justif.</span>
+                      <span className="hidden sm:inline">{ATTENDANCE_LABEL[st]}</span>
+                    </>
+                  ) : (
+                    ATTENDANCE_LABEL[st]
+                  )}
                 </button>
               ))}
             </div>
