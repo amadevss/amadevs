@@ -41,6 +41,13 @@ const PATHS = {
   chevronRight: <path d="m9 6 6 6-6 6" />,
   chevronLeft: <path d="m15 6-6 6 6 6" />,
   check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+  play: <path d="M7 4.5v15a.5.5 0 0 0 .76.43l12.2-7.5a.5.5 0 0 0 0-.86L7.76 4.07A.5.5 0 0 0 7 4.5Z" />,
+  video: (
+    <>
+      <rect x="2.5" y="5.5" width="13" height="13" rx="2" />
+      <path d="m15.5 10.5 6-3.5v10l-6-3.5" />
+    </>
+  ),
   x: <path d="M6 6l12 12M18 6 6 18" />,
   alert: (
     <>

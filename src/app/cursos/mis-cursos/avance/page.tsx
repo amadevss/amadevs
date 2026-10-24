@@ -22,10 +22,20 @@ export default async function AvancePage() {
     );
   }
 
+  const live = courses.filter((c) => c.kind === "privado");
+  if (live.length === 0) {
+    return (
+      <EmptyState icon="chart" title="Sin asistencia ni calificaciones">
+        Tus cursos abiertos muestran las clases vistas en la pestaña Cursos.
+      </EmptyState>
+    );
+  }
+
   const now = Date.now();
+  // Los cursos abiertos no tienen asistencia: su avance se ve en "Cursos".
   return (
     <div className="grid grid-cols-1 gap-5">
-      {courses.map((c) => (
+      {live.map((c) => (
         <CourseProgress key={c.id} course={c} base={base} now={now} />
       ))}
     </div>

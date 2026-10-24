@@ -1,12 +1,20 @@
 import { isUuid, sql } from "./sql";
 import { isValidSlug, slugify } from "@/lib/blog/posts";
 
+export const COURSE_KINDS = ["privado", "publico"] as const;
+export type CourseKind = (typeof COURSE_KINDS)[number];
+
 export type Course = {
   id: string;
   slug: string;
   title: string;
   description: string;
   hidden: boolean;
+  /** privado: solo con enlace (como siempre). publico: aparece en el catálogo. */
+  kind: CourseKind;
+  /** Frase corta para la tarjeta del catálogo. */
+  summary: string;
+  cover_pathname: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -21,6 +29,12 @@ export type CourseSession = {
   accepts_submissions: boolean;
   due_at: string | null;
   hidden: boolean;
+  /** Clase de muestra: cualquiera la puede ver sin inscribirse (cursos públicos). */
+  is_preview: boolean;
+  video_key: string | null;
+  video_filename: string | null;
+  video_size: number | null;
+  video_duration: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -59,10 +73,17 @@ export type CourseWithSessions = Course & { sessions: SessionWithMaterials[] };
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
-export type CourseInput = { slug: string; title: string; description: string; hidden: boolean };
+export type CourseInput = {
+  slug: string;
+  title: string;
+  description: string;
+  hidden: boolean;
+  kind: CourseKind;
+  summary: string;
+};
 
 /** Rutas propias de /cursos que no pueden usarse como id de curso. */
-const RESERVED_SLUGS = new Set(["entrar", "registro", "perfil", "salir", "mis-cursos", "ajustes"]);
+const RESERVED_SLUGS = new Set(["entrar", "registro", "perfil", "salir", "mis-cursos", "ajustes", "catalogo"]);
 
 function randomSlug(): string {
   return Math.random().toString(36).slice(2, 8);
@@ -75,6 +96,7 @@ export function normalizeCourseInput(body: Record<string, unknown>): Result<Cour
   const slug = rawSlug ? slugify(rawSlug) : randomSlug();
   if (!isValidSlug(slug)) return { ok: false, error: "Id/slug inválido (usa letras, números y guiones)" };
   if (RESERVED_SLUGS.has(slug)) return { ok: false, error: `"${slug}" está reservado, usa otro id` };
+  const kind = body.kind === "publico" ? "publico" : "privado";
   return {
     ok: true,
     value: {
@@ -82,6 +104,8 @@ export function normalizeCourseInput(body: Record<string, unknown>): Result<Cour
       title,
       description: String(body.description ?? "").trim(),
       hidden: body.hidden === true,
+      kind,
+      summary: String(body.summary ?? "").trim().slice(0, 200),
     },
   };
 }
@@ -94,6 +118,7 @@ export type SessionInput = {
   accepts_submissions: boolean;
   due_at: string | null;
   hidden: boolean;
+  is_preview: boolean;
 };
 
 export function normalizeSessionInput(body: Record<string, unknown>): Result<SessionInput> {
@@ -117,6 +142,7 @@ export function normalizeSessionInput(body: Record<string, unknown>): Result<Ses
       accepts_submissions: body.accepts_submissions !== false,
       due_at,
       hidden: body.hidden === true,
+      is_preview: body.is_preview === true,
     },
   };
 }
@@ -179,8 +205,8 @@ export async function listCoursesForDashboard(): Promise<CourseWithSessions[]> {
 
 export async function createCourse(input: CourseInput): Promise<Course> {
   const { rows } = await sql<Course>`
-    insert into course (slug, title, description, hidden)
-    values (${input.slug}, ${input.title}, ${input.description}, ${input.hidden})
+    insert into course (slug, title, description, hidden, kind, summary)
+    values (${input.slug}, ${input.title}, ${input.description}, ${input.hidden}, ${input.kind}, ${input.summary})
     returning *`;
   return rows[0];
 }
@@ -188,7 +214,8 @@ export async function createCourse(input: CourseInput): Promise<Course> {
 export async function updateCourse(id: string, input: CourseInput): Promise<Course | null> {
   const { rows } = await sql<Course>`
     update course set slug = ${input.slug}, title = ${input.title},
-      description = ${input.description}, hidden = ${input.hidden}
+      description = ${input.description}, hidden = ${input.hidden},
+      kind = ${input.kind}, summary = ${input.summary}
     where id = ${id} returning *`;
   return rows[0] ?? null;
 }
@@ -213,9 +240,9 @@ export async function deleteCourse(id: string): Promise<boolean> {
 
 export async function createSession(courseId: string, input: SessionInput): Promise<CourseSession> {
   const { rows } = await sql<CourseSession>`
-    insert into course_session (course_id, position, title, description, content, accepts_submissions, due_at, hidden)
+    insert into course_session (course_id, position, title, description, content, accepts_submissions, due_at, hidden, is_preview)
     values (${courseId}, ${input.position}, ${input.title}, ${input.description}, ${input.content},
-            ${input.accepts_submissions}, ${input.due_at}, ${input.hidden})
+            ${input.accepts_submissions}, ${input.due_at}, ${input.hidden}, ${input.is_preview})
     returning *`;
   return rows[0];
 }
@@ -224,7 +251,8 @@ export async function updateSession(id: string, input: SessionInput): Promise<Co
   const { rows } = await sql<CourseSession>`
     update course_session set position = ${input.position}, title = ${input.title},
       description = ${input.description}, content = ${input.content},
-      accepts_submissions = ${input.accepts_submissions}, due_at = ${input.due_at}, hidden = ${input.hidden}
+      accepts_submissions = ${input.accepts_submissions}, due_at = ${input.due_at}, hidden = ${input.hidden},
+      is_preview = ${input.is_preview}
     where id = ${id} returning *`;
   return rows[0] ?? null;
 }
@@ -550,14 +578,16 @@ export async function getDashboardCourse(id: string): Promise<DashboardCourse | 
 }
 
 export type DashboardSession = SessionOverview & {
-  course: Pick<Course, "id" | "slug" | "title">;
+  course: Pick<Course, "id" | "slug" | "title" | "kind">;
   student_count: number;
 };
 
 export async function getDashboardSession(courseId: string, sessionId: string): Promise<DashboardSession | null> {
   if (!isUuid(courseId) || !isUuid(sessionId)) return null;
-  const { rows } = await sql<SessionOverview & { c_id: string; c_slug: string; c_title: string; student_count: number }>`
-    select s.*, c.id as c_id, c.slug as c_slug, c.title as c_title,
+  const { rows } = await sql<
+    SessionOverview & { c_id: string; c_slug: string; c_title: string; c_kind: Course["kind"]; student_count: number }
+  >`
+    select s.*, c.id as c_id, c.slug as c_slug, c.title as c_title, c.kind as c_kind,
       (select count(*)::int from course_material m where m.session_id = s.id) as material_count,
       (select count(*)::int from course_submission x where x.session_id = s.id) as submission_count,
       (select count(*)::int from course_submission x where x.session_id = s.id and x.grade is null) as ungraded_count,
@@ -567,8 +597,8 @@ export async function getDashboardSession(courseId: string, sessionId: string): 
     where s.id = ${sessionId} and s.course_id = ${courseId} limit 1`;
   const r = rows[0];
   if (!r) return null;
-  const { c_id, c_slug, c_title, ...session } = r;
-  return { ...session, course: { id: c_id, slug: c_slug, title: c_title } };
+  const { c_id, c_slug, c_title, c_kind, ...session } = r;
+  return { ...session, course: { id: c_id, slug: c_slug, title: c_title, kind: c_kind } };
 }
 
 export type PendingReview = {
@@ -604,4 +634,140 @@ export async function countStudents(): Promise<{ total: number; lastWeek: number
            count(*) filter (where created_at > now() - interval '7 days')::int as last_week
     from student`;
   return { total: rows[0]?.total ?? 0, lastWeek: rows[0]?.last_week ?? 0 };
+}
+
+/* ───────────── Cursos públicos: catálogo, temario, video y avance ───────────── */
+
+export type CatalogCourse = Course & { lesson_count: number; total_seconds: number };
+
+/** Cursos públicos publicados, para el catálogo. Los privados nunca salen aquí. */
+export async function listCatalogCourses(): Promise<CatalogCourse[]> {
+  const { rows } = await sql<CatalogCourse>`
+    select c.*,
+      (select count(*)::int from course_session s where s.course_id = c.id and not s.hidden) as lesson_count,
+      (select coalesce(sum(s.video_duration), 0)::int from course_session s
+        where s.course_id = c.id and not s.hidden) as total_seconds
+    from course c
+    where c.kind = 'publico' and not c.hidden
+    order by c.created_at desc`;
+  return rows;
+}
+
+export type LessonProgress = { session_id: string; position_seconds: number; completed_at: string | null; updated_at: string };
+
+/** Avance del alumno en las clases visibles de un curso. */
+export async function listLessonProgress(courseId: string, studentId: string): Promise<LessonProgress[]> {
+  const { rows } = await sql<LessonProgress>`
+    select p.session_id, p.position_seconds, p.completed_at, p.updated_at
+    from course_lesson_progress p join course_session s on s.id = p.session_id
+    where s.course_id = ${courseId} and p.student_id = ${studentId} and not s.hidden`;
+  return rows;
+}
+
+export async function getLessonProgress(sessionId: string, studentId: string): Promise<LessonProgress | null> {
+  const { rows } = await sql<LessonProgress>`
+    select session_id, position_seconds, completed_at, updated_at from course_lesson_progress
+    where session_id = ${sessionId} and student_id = ${studentId}`;
+  return rows[0] ?? null;
+}
+
+/**
+ * Guarda dónde va el alumno en una clase (null = no cambia la posición).
+ * `completed`: true la marca vista,
+ * false la desmarca, undefined la deja como esté.
+ */
+export async function saveLessonProgress(
+  sessionId: string,
+  studentId: string,
+  positionSeconds: number | null,
+  completed?: boolean,
+): Promise<LessonProgress> {
+  const mark = completed === undefined ? null : completed;
+  const { rows } = await sql<LessonProgress>`
+    insert into course_lesson_progress (session_id, student_id, position_seconds, completed_at)
+    values (${sessionId}, ${studentId}, coalesce(${positionSeconds}::int, 0), case when ${mark}::boolean then now() end)
+    on conflict (session_id, student_id) do update set
+      position_seconds = coalesce(${positionSeconds}::int, course_lesson_progress.position_seconds),
+      completed_at = case
+        when ${mark}::boolean is null then course_lesson_progress.completed_at
+        when ${mark}::boolean then coalesce(course_lesson_progress.completed_at, now())
+        else null end,
+      updated_at = now()
+    returning session_id, position_seconds, completed_at, updated_at`;
+  return rows[0];
+}
+
+export type CourseCompletion = { course_id: string; completed: number; total: number; last_session_position: number | null };
+
+/** Clases vistas por curso (para "Mis cursos" e Inicio). */
+export async function listCourseCompletion(studentId: string): Promise<CourseCompletion[]> {
+  const { rows } = await sql<CourseCompletion>`
+    select c.id as course_id,
+      (select count(*)::int from course_lesson_progress p join course_session s on s.id = p.session_id
+        where s.course_id = c.id and not s.hidden and p.student_id = ${studentId} and p.completed_at is not null) as completed,
+      (select count(*)::int from course_session s where s.course_id = c.id and not s.hidden) as total,
+      (select s.position from course_lesson_progress p join course_session s on s.id = p.session_id
+        where s.course_id = c.id and not s.hidden and p.student_id = ${studentId}
+        order by p.updated_at desc limit 1) as last_session_position
+    from course c join course_enrollment e on e.course_id = c.id and e.student_id = ${studentId}
+    where c.kind = 'publico' and not c.hidden`;
+  return rows;
+}
+
+/** Siguiente clase para "Continuar": la primera sin terminar, o la primera si ya vio todas. */
+export function nextLesson<T extends { id: string }>(lessons: T[], progress: LessonProgress[]): T | null {
+  const done = new Set(progress.filter((p) => p.completed_at).map((p) => p.session_id));
+  return lessons.find((l) => !done.has(l.id)) ?? lessons[0] ?? null;
+}
+
+export async function setSessionVideo(
+  sessionId: string,
+  video: { key: string; filename: string; size: number; duration: number | null },
+): Promise<string | null> {
+  const { rows } = await sql<{ old_key: string | null }>`
+    update course_session s set video_key = ${video.key}, video_filename = ${video.filename},
+      video_size = ${video.size}, video_duration = ${video.duration}
+    from (select id, video_key as old_key from course_session where id = ${sessionId}) prev
+    where s.id = prev.id returning prev.old_key`;
+  return rows[0]?.old_key ?? null;
+}
+
+export async function clearSessionVideo(sessionId: string): Promise<string | null> {
+  const { rows } = await sql<{ old_key: string | null }>`
+    update course_session s set video_key = null, video_filename = null, video_size = null, video_duration = null
+    from (select id, video_key as old_key from course_session where id = ${sessionId}) prev
+    where s.id = prev.id returning prev.old_key`;
+  return rows[0]?.old_key ?? null;
+}
+
+/** Keys de video bajo un curso o una sesión (para borrarlos del almacenamiento). */
+export async function listVideoKeys(scope: { courseId?: string; sessionId?: string }): Promise<string[]> {
+  const { rows } = await sql<{ video_key: string }>`
+    select video_key from course_session
+    where video_key is not null and (course_id = ${scope.courseId ?? null} or id = ${scope.sessionId ?? null})`;
+  return rows.map((r) => r.video_key);
+}
+
+export async function setCourseCover(courseId: string, pathname: string | null): Promise<string | null> {
+  const { rows } = await sql<{ old: string | null }>`
+    update course c set cover_pathname = ${pathname}
+    from (select id, cover_pathname as old from course where id = ${courseId}) prev
+    where c.id = prev.id returning prev.old`;
+  return rows[0]?.old ?? null;
+}
+
+/** Clases vistas por alumno en un curso (para el dashboard). */
+export async function listCourseStudentCompletion(courseId: string): Promise<Record<string, number>> {
+  if (!isUuid(courseId)) return {};
+  const { rows } = await sql<{ student_id: string; completed: number }>`
+    select p.student_id, count(*)::int as completed
+    from course_lesson_progress p join course_session s on s.id = p.session_id
+    where s.course_id = ${courseId} and not s.hidden and p.completed_at is not null
+    group by p.student_id`;
+  return Object.fromEntries(rows.map((r) => [r.student_id, r.completed]));
+}
+
+/** ¿Puede alguien inscribirse solo? Privados: con el enlace. Públicos: gratis por ahora. */
+export function canSelfEnroll(course: Course): boolean {
+  return !course.hidden;
 }

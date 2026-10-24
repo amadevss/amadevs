@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVisibleCourse } from "@/lib/cursos/queries";
+import { canSelfEnroll, getVisibleCourse } from "@/lib/cursos/queries";
 import { enroll, getCurrentStudent } from "@/lib/cursos/students";
 
 export const runtime = "nodejs";
@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const course = await getVisibleCourse(String(body?.courseSlug ?? ""));
   if (!course) return NextResponse.json({ error: "Curso no encontrado" }, { status: 404 });
+  if (!canSelfEnroll(course)) return NextResponse.json({ error: "Este curso requiere pago" }, { status: 402 });
   await enroll(course.id, student.id);
   return NextResponse.json({ ok: true });
 }

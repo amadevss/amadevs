@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { attendancePercent, getStudentProfile } from "@/lib/cursos/queries";
+import { attendancePercent, getStudentProfile, listCourseCompletion } from "@/lib/cursos/queries";
 import { coursesBasePath } from "@/lib/cursos/server";
 import { getCurrentStudent } from "@/lib/cursos/students";
-import { Badge, EmptyState, ProgressBar } from "@/components/ui/kit";
+import { Badge, ButtonLink, EmptyState, ProgressBar } from "@/components/ui/kit";
 import Icon from "@/components/ui/icons";
 
 export const metadata: Metadata = { title: "Mis cursos" };
@@ -13,12 +13,21 @@ export const dynamic = "force-dynamic";
 export default async function MisCursosPage() {
   const [student, base] = await Promise.all([getCurrentStudent(), coursesBasePath()]);
   if (!student) redirect(`${base}/entrar`);
-  const courses = await getStudentProfile(student.id);
+  const [courses, completion] = await Promise.all([getStudentProfile(student.id), listCourseCompletion(student.id)]);
+  const progressOf = new Map(completion.map((p) => [p.course_id, p]));
 
   if (courses.length === 0) {
     return (
-      <EmptyState icon="book" title="Aún no estás inscrito en ningún curso">
-        Abre el enlace que te compartió tu profesor para inscribirte.
+      <EmptyState
+        icon="book"
+        title="Aún no estás inscrito en ningún curso"
+        action={
+          <ButtonLink href={`${base}/catalogo`} icon="search">
+            Explorar cursos
+          </ButtonLink>
+        }
+      >
+        Explora los cursos abiertos o abre el enlace que te compartió tu profesor.
       </EmptyState>
     );
   }
@@ -30,6 +39,7 @@ export default async function MisCursosPage() {
         const done = withDelivery.filter((s) => s.submitted).length;
         const pending = withDelivery.length - done;
         const pct = attendancePercent(c.sessions.map((s) => s.attendance));
+        const lessons = c.kind === "publico" ? progressOf.get(c.id) : undefined;
         return (
           <li key={c.id}>
             <Link
@@ -51,6 +61,17 @@ export default async function MisCursosPage() {
                 </div>
                 {pending > 0 ? <Badge tone="warn">{pending} pendientes</Badge> : null}
               </div>
+              {lessons ? (
+                <div className="grid grid-cols-1 gap-1.5">
+                  <div className="flex justify-between text-xs text-muted">
+                    <span>Clases vistas</span>
+                    <span className="font-semibold text-fg">
+                      {lessons.completed} de {lessons.total}
+                    </span>
+                  </div>
+                  <ProgressBar value={lessons.total ? (lessons.completed / lessons.total) * 100 : 0} label="Clases vistas" />
+                </div>
+              ) : null}
               {withDelivery.length > 0 ? (
                 <div className="grid grid-cols-1 gap-1.5">
                   <div className="flex justify-between text-xs text-muted">
@@ -63,11 +84,15 @@ export default async function MisCursosPage() {
                 </div>
               ) : null}
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted">
-                  Asistencia: <strong className="text-fg">{pct === null ? "—" : `${pct}%`}</strong>
-                </span>
+                {lessons ? (
+                  <span className="text-muted">Curso abierto</span>
+                ) : (
+                  <span className="text-muted">
+                    Asistencia: <strong className="text-fg">{pct === null ? "—" : `${pct}%`}</strong>
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1 font-medium text-primary-ink">
-                  Abrir <Icon name="chevronRight" className="h-4 w-4" />
+                  {lessons && lessons.completed > 0 && lessons.completed < lessons.total ? "Continuar" : "Abrir"} <Icon name="chevronRight" className="h-4 w-4" />
                 </span>
               </div>
             </Link>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteBlobs, hasDashboardSession } from "@/lib/cursos/server";
-import { deleteSession, listBlobPathnames, normalizeSessionInput, updateSession } from "@/lib/cursos/queries";
+import { deleteSession, listBlobPathnames, listVideoKeys, normalizeSessionInput, updateSession } from "@/lib/cursos/queries";
+import { deleteMedia } from "@/lib/media/s3";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,8 +29,8 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
   if (!(await hasDashboardSession())) return bad("No autorizado", 401);
   const { id } = await params;
-  const pathnames = await listBlobPathnames({ sessionId: id });
+  const [pathnames, videos] = await Promise.all([listBlobPathnames({ sessionId: id }), listVideoKeys({ sessionId: id })]);
   if (!(await deleteSession(id))) return bad("Sesión no encontrada", 404);
-  await deleteBlobs(pathnames);
+  await Promise.all([deleteBlobs(pathnames), deleteMedia(videos)]);
   return NextResponse.json({ ok: true });
 }

@@ -19,7 +19,7 @@ export default async function CursosPage() {
     <>
       <PageHeader
         title="Cursos"
-        description="Crea cursos, organiza sus sesiones y comparte el enlace de inscripción."
+        description="Cursos privados (con enlace) y públicos (en el catálogo, con video)."
         actions={
           <ButtonLink href="/dashboard/cursos/nuevo" icon="plus">
             Nuevo curso
@@ -53,6 +53,7 @@ export default async function CursosPage() {
                   </span>
                   <div className="flex flex-wrap justify-end gap-1.5">
                     {c.ungraded_count > 0 ? <Badge tone="warn">{c.ungraded_count} por calificar</Badge> : null}
+                    <Badge tone={c.kind === "publico" ? "primary" : "muted"}>{c.kind === "publico" ? "Público" : "Privado"}</Badge>
                     <VisibilityBadge hidden={c.hidden} />
                   </div>
                 </div>

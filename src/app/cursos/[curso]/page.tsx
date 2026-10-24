@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import {
   attendancePercent,
   getVisibleCourse,
+  listLessonProgress,
   listStudentSessionStatus,
   listVisibleSessions,
 } from "@/lib/cursos/queries";
@@ -14,6 +15,7 @@ import { DELIVERY_LABEL, DELIVERY_TONE, deliveryState } from "@/lib/cursos/statu
 import { Badge, Breadcrumbs, ButtonLink, EmptyState, ProgressBar } from "@/components/ui/kit";
 import Icon from "@/components/ui/icons";
 import { EnrollButton } from "@/components/cursos/StudentActions";
+import PublicCourse from "@/components/cursos/PublicCourse";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +23,10 @@ type Props = { params: Promise<{ curso: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const course = await getVisibleCourse((await params).curso);
-  return course ? { title: course.title, description: course.description } : {};
+  if (!course) return {};
+  const meta: Metadata = { title: course.title, description: course.summary || course.description };
+  // Los cursos públicos se pueden indexar; los privados siguen ocultos a buscadores.
+  return course.kind === "publico" ? { ...meta, robots: { index: true, follow: true } } : meta;
 }
 
 export default async function CursoPage({ params }: Props) {
@@ -29,6 +34,16 @@ export default async function CursoPage({ params }: Props) {
   if (!course) notFound();
   const [student, base] = await Promise.all([getCurrentStudent(), coursesBasePath()]);
   const enrolled = student ? await isEnrolled(course.id, student.id) : false;
+
+  if (course.kind === "publico") {
+    const [lessons, progress] = await Promise.all([
+      listVisibleSessions(course.id),
+      student && enrolled ? listLessonProgress(course.id, student.id) : Promise.resolve([]),
+    ]);
+    return (
+      <PublicCourse course={course} lessons={lessons} progress={progress} base={base} loggedIn={!!student} enrolled={enrolled} />
+    );
+  }
 
   const header = (
     <header className="mb-6">

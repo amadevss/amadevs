@@ -8,9 +8,12 @@ import {
 } from "@/lib/cursos/queries";
 import { hasDashboardSession } from "@/lib/cursos/server";
 import { getCurrentStudent } from "@/lib/cursos/students";
+import { courseExists } from "@/lib/cursos/queries";
 import {
+  MAX_COVER_BYTES,
   MAX_MATERIAL_BYTES,
   MAX_SUBMISSION_BYTES,
+  coverFolder,
   materialFolder,
   submissionFolder,
 } from "@/lib/cursos/shared";
@@ -22,6 +25,7 @@ export const dynamic = "force-dynamic";
  * Emite tokens para que el navegador suba directo a Vercel Blob (privado).
  * - kind "entrega": alumno con sesión, inscrito, y con la entrega abierta.
  * - kind "material": solo con sesión de dashboard.
+ * - kind "portada": imagen de portada de un curso, solo dashboard.
  * El registro en la base de datos se hace después con otra llamada.
  */
 export async function POST(req: NextRequest) {
@@ -33,8 +37,20 @@ export async function POST(req: NextRequest) {
       body,
       request: req,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
-        const payload = JSON.parse(clientPayload ?? "{}") as { kind?: string; sessionId?: string };
+        const payload = JSON.parse(clientPayload ?? "{}") as { kind?: string; sessionId?: string; courseId?: string };
         const sessionId = String(payload.sessionId ?? "");
+
+        if (payload.kind === "portada") {
+          const courseId = String(payload.courseId ?? "");
+          if (!(await hasDashboardSession())) throw new Error("No autorizado");
+          if (!(await courseExists(courseId))) throw new Error("Curso no encontrado");
+          if (!pathname.startsWith(coverFolder(courseId))) throw new Error("Ruta inválida");
+          return {
+            addRandomSuffix: true,
+            maximumSizeInBytes: MAX_COVER_BYTES,
+            allowedContentTypes: ["image/jpeg", "image/png", "image/webp", "image/avif"],
+          };
+        }
 
         if (payload.kind === "material") {
           if (!(await hasDashboardSession())) throw new Error("No autorizado");

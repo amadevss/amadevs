@@ -26,9 +26,13 @@ export default async function SesionLayout({
   const prev = course.sessions[idx - 1];
   const next = course.sessions[idx + 1];
   const overdue = session.due_at ? new Date(session.due_at).getTime() < Date.now() : false;
+  const isPublic = course.kind === "publico";
+  const noun = isPublic ? "Clase" : "Sesión";
 
   const tabs = [
-    { href, label: "Asistencia", count: session.attendance_count, exact: true },
+    isPublic
+      ? { href, label: "Video", count: session.video_key ? 1 : 0, exact: true }
+      : { href, label: "Asistencia", count: session.attendance_count, exact: true },
     { href: `${href}/materiales`, label: "Materiales", count: session.material_count },
   ];
   if (session.accepts_submissions || session.submission_count > 0) {
@@ -41,13 +45,21 @@ export default async function SesionLayout({
         crumbs={[
           { label: "Cursos", href: "/dashboard/cursos" },
           { label: course.title, href: courseHref(course.id) },
-          { label: `Sesión ${session.position}` },
+          { label: `${noun} ${session.position}` },
         ]}
         title={session.title}
-        badge={session.hidden ? <Badge tone="muted">Oculta</Badge> : null}
+        badge={
+          session.hidden ? (
+            <Badge tone="muted">Oculta</Badge>
+          ) : isPublic && session.is_preview ? (
+            <Badge tone="primary">Muestra gratis</Badge>
+          ) : null
+        }
         description={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span>Sesión {session.position}</span>
+            <span>
+              {noun} {session.position}
+            </span>
             {session.accepts_submissions ? (
               session.due_at ? (
                 <span className={`inline-flex items-center gap-1 ${overdue ? "text-subtle" : "text-amber-700 dark:text-amber-400"}`}>
@@ -75,8 +87,12 @@ export default async function SesionLayout({
             <DeleteButton
               variant="button"
               url={`/api/dashboard/cursos/sesiones/${session.id}`}
-              title={`¿Eliminar la sesión ${session.position}?`}
-              message="Se borran sus materiales, entregas (con archivos) y asistencia. No se puede deshacer."
+              title={`¿Eliminar la ${noun.toLowerCase()} ${session.position}?`}
+              message={
+                isPublic
+                  ? "Se borran su video, materiales, entregas y el avance de los alumnos en ella. No se puede deshacer."
+                  : "Se borran sus materiales, entregas (con archivos) y asistencia. No se puede deshacer."
+              }
               confirmLabel="Eliminar sesión"
               success="Sesión eliminada"
               redirectTo={courseHref(course.id)}
@@ -97,7 +113,9 @@ export default async function SesionLayout({
             >
               <Icon name="chevronLeft" className="h-4 w-4 shrink-0 text-subtle" />
               <span className="min-w-0">
-                <span className="block text-xs text-subtle">Sesión {prev.position}</span>
+                <span className="block text-xs text-subtle">
+                  {noun} {prev.position}
+                </span>
                 <span className="block truncate font-medium">{prev.title}</span>
               </span>
             </Link>
@@ -110,7 +128,9 @@ export default async function SesionLayout({
               className="surface-card flex min-h-14 items-center justify-end gap-2 px-4 py-3 text-right text-sm transition hover:bg-surface-2"
             >
               <span className="min-w-0">
-                <span className="block text-xs text-subtle">Sesión {next.position}</span>
+                <span className="block text-xs text-subtle">
+                  {noun} {next.position}
+                </span>
                 <span className="block truncate font-medium">{next.title}</span>
               </span>
               <Icon name="chevronRight" className="h-4 w-4 shrink-0 text-subtle" />

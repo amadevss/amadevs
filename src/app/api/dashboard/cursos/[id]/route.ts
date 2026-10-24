@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteBlobs, hasDashboardSession } from "@/lib/cursos/server";
-import { deleteCourse, listBlobPathnames, normalizeCourseInput, updateCourse } from "@/lib/cursos/queries";
+import { deleteCourse, listBlobPathnames, listVideoKeys, normalizeCourseInput, setCourseCover, updateCourse } from "@/lib/cursos/queries";
+import { deleteMedia } from "@/lib/media/s3";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,8 +29,12 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
   if (!(await hasDashboardSession())) return bad("No autorizado", 401);
   const { id } = await params;
-  const pathnames = await listBlobPathnames({ courseId: id });
+  const [pathnames, videos, cover] = await Promise.all([
+    listBlobPathnames({ courseId: id }),
+    listVideoKeys({ courseId: id }),
+    setCourseCover(id, null),
+  ]);
   if (!(await deleteCourse(id))) return bad("Curso no encontrado", 404);
-  await deleteBlobs(pathnames);
+  await Promise.all([deleteBlobs(cover ? [...pathnames, cover] : pathnames), deleteMedia(videos)]);
   return NextResponse.json({ ok: true });
 }

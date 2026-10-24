@@ -157,7 +157,16 @@ function attendancePct(s: CourseStudentRow): number | null {
 }
 
 /** Alumnos inscritos en un curso. */
-export function CourseStudentsPanel({ courseId, students }: { courseId: string; students: CourseStudentRow[] }) {
+/** `lessons`: solo en cursos públicos; muestra clases vistas en lugar de asistencia. */
+export function CourseStudentsPanel({
+  courseId,
+  students,
+  lessons,
+}: {
+  courseId: string;
+  students: CourseStudentRow[];
+  lessons?: { total: number; completed: Record<string, number> };
+}) {
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
   const list = useMemo(() => students.filter((s) => matches(s, q)), [students, q]);
@@ -175,7 +184,8 @@ export function CourseStudentsPanel({ courseId, students }: { courseId: string; 
       {students.length > 5 ? <SearchBox value={query} onChange={setQuery} placeholder="Buscar por nombre o correo" /> : null}
       <ul className="grid grid-cols-1 gap-3">
         {list.map((s) => {
-          const pct = attendancePct(s);
+          const seen = lessons ? (lessons.completed[s.id] ?? 0) : 0;
+          const pct = lessons ? (lessons.total ? Math.round((seen / lessons.total) * 100) : null) : attendancePct(s);
           return (
             <li key={s.id} className="surface-card grid grid-cols-1 gap-3 p-4">
               <div className="flex items-start justify-between gap-3">
@@ -186,16 +196,24 @@ export function CourseStudentsPanel({ courseId, students }: { courseId: string; 
                 </div>
                 <div className="w-24 shrink-0 text-right">
                   <p className="font-display text-xl font-bold">{pct === null ? "—" : `${pct}%`}</p>
-                  <p className="mb-1 text-[11px] uppercase tracking-wide text-subtle">asistencia</p>
-                  {pct !== null ? <ProgressBar value={pct} label="Asistencia" /> : null}
+                  <p className="mb-1 text-[11px] uppercase tracking-wide text-subtle">{lessons ? "avance" : "asistencia"}</p>
+                  {pct !== null ? <ProgressBar value={pct} label={lessons ? "Avance" : "Asistencia"} /> : null}
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                <Badge tone="ok">{s.presente} presente</Badge>
-                {s.retardo ? <Badge tone="warn">{s.retardo} retardo</Badge> : null}
-                {s.falta ? <Badge tone="bad">{s.falta} falta</Badge> : null}
-                {s.justificada ? <Badge tone="info">{s.justificada} justificada</Badge> : null}
-                <Badge tone="primary">{s.submissions} entregas</Badge>
+                {lessons ? (
+                  <Badge tone="ok">
+                    {seen} de {lessons.total} clases vistas
+                  </Badge>
+                ) : (
+                  <>
+                    <Badge tone="ok">{s.presente} presente</Badge>
+                    {s.retardo ? <Badge tone="warn">{s.retardo} retardo</Badge> : null}
+                    {s.falta ? <Badge tone="bad">{s.falta} falta</Badge> : null}
+                    {s.justificada ? <Badge tone="info">{s.justificada} justificada</Badge> : null}
+                  </>
+                )}
+                {!lessons || s.submissions > 0 ? <Badge tone="primary">{s.submissions} entregas</Badge> : null}
               </div>
               <div className="border-t border-border pt-2">
                 <StudentActions student={s} courseId={courseId} />
