@@ -744,3 +744,50 @@ body {
     animation: none;
   }
 }
+
+/* ============================================================
+   Tema naranja de profe.bryanoliveros.com
+   Solo aplica dentro de .theme-profe (layout de /profe); el resto
+   del sitio conserva el morado.
+   ============================================================ */
+.theme-profe {
+  --primary: #ea580c;
+  --primary-ink: #c2410c;
+  --primary-soft: rgba(234, 88, 12, 0.12);
+  --accent: #f59e0b;
+  --ring: rgba(234, 88, 12, 0.45);
+  --grad: linear-gradient(120deg, #ea580c 0%, #f97316 45%, #f59e0b 100%);
+  --shadow-glow: 0 0 0 1px var(--primary-soft), 0 12px 40px rgba(234, 88, 12, 0.18);
+}
+:root.dark .theme-profe {
+  --border: rgba(251, 146, 60, 0.16);
+  --border-strong: rgba(251, 146, 60, 0.3);
+  --primary: #fb923c;
+  --primary-ink: #fdba74;
+  --primary-soft: rgba(251, 146, 60, 0.16);
+  --accent: #fbbf24;
+  --ring: rgba(251, 146, 60, 0.55);
+  --grad: linear-gradient(120deg, #f97316 0%, #fb923c 45%, #fbbf24 100%);
+  --shadow-glow: 0 0 0 1px var(--primary-soft), 0 16px 50px rgba(251, 146, 60, 0.28);
+}
+.theme-profe .app-shell::before {
+  background:
+    radial-gradient(900px 620px at 12% -8%, rgba(234, 88, 12, 0.14), transparent 60%),
+    radial-gradient(820px 560px at 92% 4%, rgba(245, 158, 11, 0.12), transparent 62%),
+    radial-gradient(760px 620px at 50% 108%, rgba(249, 115, 22, 0.08), transparent 60%);
+}
+:root.dark .theme-profe .app-shell::before {
+  background:
+    radial-gradient(1000px 700px at 12% -10%, rgba(251, 146, 60, 0.2), transparent 60%),
+    radial-gradient(900px 620px at 92% 2%, rgba(251, 191, 36, 0.13), transparent 62%),
+    radial-gradient(820px 680px at 50% 112%, rgba(249, 115, 22, 0.09), transparent 60%);
+}
+.theme-profe .page-decor__blob--1 {
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.24) 0%, rgba(249, 115, 22, 0.09) 38%, transparent 72%);
+}
+.theme-profe .page-decor__blob--2 {
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, rgba(245, 158, 11, 0.07) 38%, transparent 72%);
+}
+.theme-profe .btn-primary:hover {
+  box-shadow: 0 0 0 1px var(--primary-soft), 0 20px 48px rgba(234, 88, 12, 0.32);
+}

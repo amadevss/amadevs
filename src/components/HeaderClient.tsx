@@ -6,7 +6,9 @@ import ThemeToggle from "./ThemeToggle";
 import SocialLinks from "./SocialLinks";
 import Icon from "./Icon";
 
-const NAV = [
+export type NavItem = { href: string; label: string };
+
+const NAV: NavItem[] = [
   { href: "/#sobre-mi", label: "Sobre mí" },
   { href: "/#servicios", label: "Servicios" },
   { href: "/#roles", label: "Roles" },
@@ -14,22 +16,41 @@ const NAV = [
   { href: "/#proyectos", label: "Proyectos" },
   { href: "/blog", label: "Blog" },
   { href: "/agenda", label: "Agenda" },
+  // En producción el middleware lleva /profe a profe.<dominio>.
+  { href: "/profe", label: "Profe" },
 ];
 
-// En la barra de escritorio "Agenda" ya está como botón CTA, así que se
-// omite del listado de enlaces para que no quede amontonado.
-const DESKTOP_NAV = NAV.filter((item) => item.href !== "/agenda");
+const SUBDOMAINS = ["cursos.", "profe."];
 
-export default function HeaderClient() {
+const DEFAULT_BRAND =
+  "bg-gradient-to-r from-violet-400 via-fuchsia-400 to-purple-500 bg-clip-text text-transparent drop-shadow-[0_2px_12px_rgba(168,85,247,0.35)]";
+
+type Props = {
+  /** Enlaces del menú; por defecto, los del sitio principal. */
+  nav?: NavItem[];
+  /** Clases del logo "BOP" (el sitio de profe lo pinta en naranja). */
+  brandClassName?: string;
+  /** A dónde lleva el logo; por defecto, al inicio del sitio principal. */
+  homeHref?: string;
+};
+
+export default function HeaderClient({ nav = NAV, brandClassName = DEFAULT_BRAND, homeHref = "/" }: Props) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  // En cursos.<dominio> los enlaces del menú apuntan al sitio principal.
+  // En cursos.<dominio> y profe.<dominio> las rutas del sitio principal
+  // (/blog, /agenda…) apuntan al dominio principal. Los "#ancla" y las URLs
+  // absolutas se dejan tal cual.
   const [mainOrigin, setMainOrigin] = useState("");
-  const to = (href: string) => `${mainOrigin}${href}`;
+  const to = (href: string) => (href.startsWith("/") ? `${mainOrigin}${href}` : href);
+
+  // En la barra de escritorio "Agenda" ya está como botón CTA, así que se
+  // omite del listado de enlaces para que no quede amontonado.
+  const desktopNav = nav.filter((item) => item.href !== "/agenda");
 
   useEffect(() => {
     const host = window.location.host;
-    if (host.startsWith("cursos.")) setMainOrigin(`${window.location.protocol}//${host.slice("cursos.".length)}`);
+    const sub = SUBDOMAINS.find((s) => host.startsWith(s));
+    if (sub) setMainOrigin(`${window.location.protocol}//${host.slice(sub.length)}`);
   }, []);
 
   useEffect(() => {
@@ -49,16 +70,16 @@ export default function HeaderClient() {
         }`}
       >
         <Link
-          href={to("/")}
+          href={to(homeHref)}
           className="group flex shrink-0 items-center gap-2.5 font-display text-[22px] font-semibold tracking-tight"
         >
-        <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-purple-500 bg-clip-text text-transparent drop-shadow-[0_2px_12px_rgba(168,85,247,0.35)]">
+        <span className={brandClassName}>
             BOP
           </span>
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          {DESKTOP_NAV.map((item) => (
+          {desktopNav.map((item) => (
             <Link
               key={item.href}
               href={to(item.href)}
@@ -106,7 +127,7 @@ export default function HeaderClient() {
       {open && (
         <div className="mx-auto mt-1 max-w-5xl px-5 lg:hidden">
           <nav className="flex flex-col gap-1 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-lg)]">
-            {NAV.map((item) => (
+            {nav.map((item) => (
               <Link
                 key={item.href}
                 href={to(item.href)}
