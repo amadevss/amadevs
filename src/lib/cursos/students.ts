@@ -162,9 +162,11 @@ export async function getCurrentStudent(): Promise<Student | null> {
 
 /* ───────────── Inscripciones ───────────── */
 
-export async function enroll(courseId: string, studentId: string): Promise<void> {
+export type EnrollmentSource = "link" | "purchase" | "manual";
+
+export async function enroll(courseId: string, studentId: string, source: EnrollmentSource = "link"): Promise<void> {
   await sql`
-    insert into course_enrollment (course_id, student_id) values (${courseId}, ${studentId})
+    insert into course_enrollment (course_id, student_id, source) values (${courseId}, ${studentId}, ${source})
     on conflict do nothing`;
 }
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CatalogCourse } from "@/lib/cursos/queries";
 import { fileUrl, formatDuration } from "@/lib/cursos/shared";
+import { formatMoney } from "@/lib/agenda/format";
 import { Badge, EmptyState } from "@/components/ui/kit";
 import Icon from "@/components/ui/icons";
 
@@ -69,7 +70,11 @@ export default function Catalog({
             <div className="flex flex-1 flex-col gap-2 p-5">
               <div className="flex items-start justify-between gap-2">
                 <h2 className="font-display text-lg font-bold leading-snug group-hover:text-primary-ink">{c.title}</h2>
-                {enrolled.has(c.id) ? <Badge tone="ok">Inscrito</Badge> : <Badge tone="primary">Gratis</Badge>}
+                {enrolled.has(c.id) ? (
+                  <Badge tone="ok">Inscrito</Badge>
+                ) : (
+                  <Badge tone="primary">{c.price_cents > 0 ? formatMoney(c.price_cents, c.currency) : "Gratis"}</Badge>
+                )}
               </div>
               {c.summary || c.description ? (
                 <p className="line-clamp-2 text-sm text-muted">{c.summary || c.description}</p>

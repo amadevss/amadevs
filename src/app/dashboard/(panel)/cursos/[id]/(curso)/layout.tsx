@@ -90,6 +90,7 @@ export default async function CursoLayout({
         tabs={[
           { href, label: isPublic ? "Clases" : "Sesiones", count: course.sessions.length, exact: true },
           { href: `${href}/alumnos`, label: "Alumnos", count: course.student_count },
+          ...(isPublic ? [{ href: `${href}/venta`, label: "Venta" }] : []),
         ]}
       />
       {children}

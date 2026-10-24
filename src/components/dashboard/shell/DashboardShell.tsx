@@ -15,6 +15,7 @@ const NAV: NavItem[] = [
   { href: "/dashboard/calendario", label: "Calendario", icon: "calendar" },
   { href: "/dashboard/pagos", label: "Pagos", icon: "card" },
   { href: "/dashboard/cursos", label: "Cursos", icon: "book" },
+  { href: "/dashboard/ventas", label: "Ventas", icon: "chart" },
   { href: "/dashboard/alumnos", label: "Alumnos", icon: "users" },
   { href: "/dashboard/blog", label: "Blog", icon: "pen" },
 ];

@@ -35,6 +35,35 @@ export function EnrollButton({ courseSlug }: { courseSlug: string }) {
   );
 }
 
+/** Abre el pago de Stripe de un curso de pago. */
+export function BuyButton({ courseSlug, label }: { courseSlug: string; label: string }) {
+  const { toast } = useFeedback();
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      type="button"
+      className="btn btn-primary min-h-12 w-full text-base"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        const r = await fetch("/api/cursos/comprar", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ courseSlug }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.checkoutUrl) {
+          setBusy(false);
+          return toast.error(j.error || "No se pudo iniciar el pago. Intenta de nuevo.");
+        }
+        window.location.href = j.checkoutUrl;
+      }}
+    >
+      {busy ? "Abriendo pago seguro…" : label}
+    </button>
+  );
+}
+
 export function ChangePasswordForm() {
   const { toast } = useFeedback();
   const [current, setCurrent] = useState("");

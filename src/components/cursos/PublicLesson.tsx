@@ -128,8 +128,8 @@ export default async function PublicLesson({ course, session, studentId, enrolle
         <section className="mt-5 grid grid-cols-1 gap-3 rounded-2xl border border-primary/30 bg-primary-soft p-5 sm:p-6">
           <p className="font-display text-lg font-bold">¿Te gustó la clase?</p>
           <p className="text-sm text-muted">
-            Inscríbete gratis a <strong className="text-fg">{course.title}</strong> para ver las {lessons.length} clases,
-            descargar el material y guardar tu avance.
+            {course.price_cents > 0 ? "Obtén" : "Inscríbete gratis a"} <strong className="text-fg">{course.title}</strong>{" "}
+            para ver las {lessons.length} clases, descargar el material y guardar tu avance.
           </p>
           <ButtonLink href={courseHref} icon="sparkles" className="w-full sm:w-auto sm:justify-self-start">
             Ver el curso completo
