@@ -62,7 +62,7 @@ type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 export type CourseInput = { slug: string; title: string; description: string; hidden: boolean };
 
 /** Rutas propias de /cursos que no pueden usarse como id de curso. */
-const RESERVED_SLUGS = new Set(["entrar", "registro", "perfil", "salir"]);
+const RESERVED_SLUGS = new Set(["entrar", "registro", "perfil", "salir", "mis-cursos", "ajustes"]);
 
 function randomSlug(): string {
   return Math.random().toString(36).slice(2, 8);

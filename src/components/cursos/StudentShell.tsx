@@ -42,14 +42,12 @@ export default function StudentShell({
   // Ruta sin el prefijo /cursos, para comparar igual en ambos dominios.
   const path = pathname.replace(/^\/cursos(?=\/|$)/, "") || "/";
   const home = base || "/";
+  const isSettings = (p: string) => p === "/ajustes" || p.startsWith("/ajustes/");
   const items: Item[] = [
-    {
-      href: home,
-      match: (p) => p !== "/perfil" && !p.startsWith("/perfil/"),
-      label: "Mis cursos",
-      icon: "book",
-    },
-    { href: `${base}/perfil`, match: (p) => p === "/perfil" || p.startsWith("/perfil/"), label: "Perfil", icon: "user" },
+    { href: home, match: (p) => p === "/", label: "Inicio", icon: "home" },
+    // Cursos incluye la lista y cualquier curso o sesión abierta.
+    { href: `${base}/mis-cursos`, match: (p) => p !== "/" && !isSettings(p), label: "Cursos", icon: "book" },
+    { href: `${base}/ajustes`, match: isSettings, label: "Ajustes", icon: "settings" },
   ];
 
   async function logout() {
@@ -164,7 +162,7 @@ export default function StudentShell({
         className="fixed inset-x-0 bottom-0 z-[60] border-t border-border-strong pb-[env(safe-area-inset-bottom)] lg:hidden"
         style={{ backgroundColor: "var(--bg)" }}
       >
-        <div className="mx-auto grid max-w-lg grid-cols-3">
+        <div className="mx-auto grid max-w-lg grid-cols-4">
           {items.map((it) => {
             const active = it.match(path);
             return (

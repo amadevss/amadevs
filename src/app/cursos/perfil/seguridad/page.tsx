@@ -1,16 +1,7 @@
-import type { Metadata } from "next";
-import { Section } from "@/components/ui/kit";
-import { ChangePasswordForm } from "@/components/cursos/StudentActions";
+import { redirect } from "next/navigation";
+import { coursesBasePath } from "@/lib/cursos/server";
 
-export const metadata: Metadata = { title: "Contraseña" };
-
-export default function SeguridadPage() {
-  return (
-    <Section title="Cambiar contraseña">
-      <p className="-mt-2 mb-5 text-sm text-muted">
-        Al cambiarla cerramos tu sesión en otros dispositivos. Este se queda abierto.
-      </p>
-      <ChangePasswordForm />
-    </Section>
-  );
+/** Ruta vieja: la contraseña ahora vive en Ajustes. */
+export default async function SeguridadRedirect() {
+  redirect(`${await coursesBasePath()}/ajustes`);
 }
