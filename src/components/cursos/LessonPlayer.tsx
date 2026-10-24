@@ -46,6 +46,9 @@ export function LessonVideo({
   const lastSaved = useRef(startAt);
   const done = useRef(completed);
   const [resumed, setResumed] = useState<number | null>(null);
+  // Cada render del servidor firma una URL nueva; se conserva la primera para
+  // que el video no se recargue al marcar la clase como vista.
+  const [videoSrc] = useState(src);
 
   useEffect(() => {
     done.current = completed;
@@ -104,7 +107,7 @@ export function LessonVideo({
     <div className="grid grid-cols-1 gap-2">
       <video
         ref={ref}
-        src={src}
+        src={videoSrc}
         controls
         playsInline
         preload="metadata"
