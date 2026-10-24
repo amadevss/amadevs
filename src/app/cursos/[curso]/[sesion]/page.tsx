@@ -45,7 +45,7 @@ export default async function SesionPage({ params }: Props) {
     <>
       <Breadcrumbs
         items={[
-          { label: "Mis cursos", href: base || "/" },
+          { label: "Mis cursos", href: `${base}/mis-cursos` },
           { label: course.title, href: courseHref },
           { label: `Sesión ${session.position}` },
         ]}

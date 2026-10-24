@@ -32,7 +32,7 @@ export default async function CursoPage({ params }: Props) {
 
   const header = (
     <header className="mb-6">
-      {enrolled ? <Breadcrumbs items={[{ label: "Mis cursos", href: base || "/" }, { label: course.title }]} /> : <p className="eyebrow mb-3">Curso</p>}
+      {enrolled ? <Breadcrumbs items={[{ label: "Mis cursos", href: `${base}/mis-cursos` }, { label: course.title }]} /> : <p className="eyebrow mb-3">Curso</p>}
       <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{course.title}</h1>
       {course.description ? <p className="mt-3 whitespace-pre-line text-muted">{course.description}</p> : null}
     </header>

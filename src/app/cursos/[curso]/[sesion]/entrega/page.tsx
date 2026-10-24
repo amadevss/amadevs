@@ -31,7 +31,7 @@ export default async function EntregaPage({ params }: Props) {
     <>
       <Breadcrumbs
         items={[
-          { label: "Mis cursos", href: base || "/" },
+          { label: "Mis cursos", href: `${base}/mis-cursos` },
           { label: course.title, href: courseHref },
           { label: `Sesión ${session.position}`, href: sessionHref },
           { label: "Entrega" },
