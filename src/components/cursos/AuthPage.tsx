@@ -24,7 +24,8 @@ export default async function AuthPage({ mode, curso }: { mode: "entrar" | "regi
         <p className="mt-2 text-sm text-muted">
           {course ? (
             <>
-              {registering ? "Regístrate" : "Entra"} para inscribirte a <strong className="text-fg">{course.title}</strong>.
+              {registering ? "Regístrate" : "Entra"} para {course.kind === "publico" && course.price_cents > 0 ? "comprar" : "inscribirte a"}{" "}
+              <strong className="text-fg">{course.title}</strong>.
             </>
           ) : registering ? (
             "Con tu cuenta verás tus sesiones, materiales y entregas."

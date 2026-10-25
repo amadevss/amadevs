@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { deleteBlobs, hasDashboardSession } from "@/lib/cursos/server";
 import { deleteCourse, listBlobPathnames, listVideoKeys, normalizeCourseInput, setCourseCover, updateCourse } from "@/lib/cursos/queries";
 import { deleteMedia } from "@/lib/media/s3";
+import { refreshStripeProduct } from "@/lib/cursos/payments";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   try {
     const course = await updateCourse(id, parsed.value);
     if (!course) return bad("Curso no encontrado", 404);
+    await refreshStripeProduct(course);
     return NextResponse.json({ course });
   } catch (err) {
     if (isUniqueViolation(err)) return bad("Ya existe un curso con ese id", 409);

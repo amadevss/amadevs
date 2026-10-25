@@ -9,9 +9,43 @@ import {
   refundBookingByPaymentIntent,
   unclaimWebhookEvent,
 } from "@/lib/agenda/queries";
+import { applyChargeRefund, applyDispute, markCheckoutFailed, syncCheckoutSession } from "@/lib/cursos/payments";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const isCourseSession = (s: Stripe.Checkout.Session) => s.metadata?.kind === "course";
+
+/**
+ * Compras de cursos. Devuelve true si el evento era de un curso (y ya se
+ * procesó); false para que siga el flujo de la Agenda.
+ */
+async function handleCourseEvent(event: Stripe.Event): Promise<boolean> {
+  switch (event.type) {
+    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded": {
+      const session = event.data.object;
+      if (!isCourseSession(session)) return false;
+      await syncCheckoutSession(session.id);
+      return true;
+    }
+    case "checkout.session.async_payment_failed":
+    case "checkout.session.expired": {
+      const session = event.data.object;
+      if (!isCourseSession(session)) return false;
+      await markCheckoutFailed(session.id, event.type === "checkout.session.expired" ? "expired" : "failed");
+      return true;
+    }
+    case "charge.refunded":
+      return applyChargeRefund(event.data.object);
+    case "charge.dispute.created":
+      return applyDispute(event.data.object, false);
+    case "charge.dispute.closed":
+      return applyDispute(event.data.object, true);
+    default:
+      return false;
+  }
+}
 
 export async function POST(req: NextRequest) {
   const sig = req.headers.get("stripe-signature");
@@ -39,6 +73,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    if (await handleCourseEvent(event)) return NextResponse.json({ received: true });
+
     switch (event.type) {
       case "checkout.session.completed":
       case "checkout.session.async_payment_succeeded": {

@@ -16,10 +16,11 @@ import { Badge, Breadcrumbs, ButtonLink, EmptyState, ProgressBar } from "@/compo
 import Icon from "@/components/ui/icons";
 import { EnrollButton } from "@/components/cursos/StudentActions";
 import PublicCourse from "@/components/cursos/PublicCourse";
+import { getLatestPurchase, syncCheckoutSession, type Purchase } from "@/lib/cursos/payments";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ curso: string }> };
+type Props = { params: Promise<{ curso: string }>; searchParams?: Promise<{ compra?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const course = await getVisibleCourse((await params).curso);
@@ -29,19 +30,42 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return course.kind === "publico" ? { ...meta, robots: { index: true, follow: true } } : meta;
 }
 
-export default async function CursoPage({ params }: Props) {
+export default async function CursoPage({ params, searchParams }: Props) {
   const course = await getVisibleCourse((await params).curso);
   if (!course) notFound();
   const [student, base] = await Promise.all([getCurrentStudent(), coursesBasePath()]);
+
+  // Al volver de Stripe se confirma el pago aquí mismo, sin esperar al webhook.
+  const compra = (await searchParams)?.compra;
+  let returned: Purchase | null = null;
+  if (student && course.kind === "publico" && compra?.startsWith("cs_")) {
+    returned = await syncCheckoutSession(compra).catch((err) => {
+      console.error("[cursos] confirmar compra", err);
+      return null;
+    });
+    if (returned && returned.student_id !== student.id) returned = null;
+  }
+
   const enrolled = student ? await isEnrolled(course.id, student.id) : false;
 
   if (course.kind === "publico") {
-    const [lessons, progress] = await Promise.all([
+    const [lessons, progress, purchase] = await Promise.all([
       listVisibleSessions(course.id),
       student && enrolled ? listLessonProgress(course.id, student.id) : Promise.resolve([]),
+      student && !enrolled && course.price_cents > 0 ? getLatestPurchase(course.id, student.id) : Promise.resolve(null),
     ]);
+    const justPaid = returned ? (returned.status === "paid" ? "paid" : returned.status === "pending" ? "pending" : null) : null;
     return (
-      <PublicCourse course={course} lessons={lessons} progress={progress} base={base} loggedIn={!!student} enrolled={enrolled} />
+      <PublicCourse
+        course={course}
+        lessons={lessons}
+        progress={progress}
+        base={base}
+        loggedIn={!!student}
+        enrolled={enrolled}
+        purchase={purchase}
+        justPaid={justPaid}
+      />
     );
   }
 

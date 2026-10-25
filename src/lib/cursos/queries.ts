@@ -15,6 +15,16 @@ export type Course = {
   /** Frase corta para la tarjeta del catálogo. */
   summary: string;
   cover_pathname: string | null;
+  /** Venta (cursos públicos). price_cents 0 = gratis. */
+  price_cents: number;
+  currency: string;
+  payment_methods: string[];
+  allow_promotion_codes: boolean;
+  installments: boolean;
+  collect_tax_id: boolean;
+  stripe_mode: string | null;
+  stripe_product_id: string | null;
+  stripe_price_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -767,7 +777,10 @@ export async function listCourseStudentCompletion(courseId: string): Promise<Rec
   return Object.fromEntries(rows.map((r) => [r.student_id, r.completed]));
 }
 
-/** ¿Puede alguien inscribirse solo? Privados: con el enlace. Públicos: gratis por ahora. */
+/** ¿Puede alguien inscribirse solo? Privados: con el enlace. Públicos: solo si son gratis. */
 export function canSelfEnroll(course: Course): boolean {
-  return !course.hidden;
+  if (course.hidden) return false;
+  return course.kind === "privado" || !isPaid(course);
 }
+
+export const isPaid = (course: Pick<Course, "kind" | "price_cents">) => course.kind === "publico" && course.price_cents > 0;
