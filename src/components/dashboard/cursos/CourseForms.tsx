@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent, type ReactNode } from "react";
-import type { Course, CourseSession } from "@/lib/cursos/queries";
-import { COURSES_PUBLIC_ORIGIN, toLocalInput } from "@/lib/cursos/shared";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import type { Course, CourseKind, CourseSession } from "@/lib/cursos/queries";
+import { COURSES_PUBLIC_ORIGIN, fileUrl, formatBytes, MAX_COVER_BYTES, toLocalInput } from "@/lib/cursos/shared";
+import { uploadCourseCover } from "@/lib/cursos/upload";
+import Icon from "@/components/ui/icons";
 import { courseHref, sessionHref } from "@/lib/dashboard/paths";
 import { useFeedback } from "@/components/ui/feedback";
 import { ErrorNote, FIELD_LABEL } from "@/components/ui/kit";
@@ -85,9 +87,102 @@ async function send<T>(url: string, method: string, body: unknown, key: string):
   return j[key] as T;
 }
 
+const KIND_OPTIONS: { value: CourseKind; title: string; hint: string }[] = [
+  {
+    value: "privado",
+    title: "Privado",
+    hint: "Solo entra quien tiene el enlace. Asistencia, entregas y calificaciones, como hasta ahora.",
+  },
+  {
+    value: "publico",
+    title: "Público",
+    hint: "Aparece en el catálogo. Clases con video, muestras gratis y avance guardado.",
+  },
+];
+
+/** Portada del curso: se sube y guarda en cuanto se elige la imagen. */
+function CoverPicker({ courseId, cover }: { courseId: string; cover: string | null }) {
+  const router = useRouter();
+  const { toast, confirm } = useFeedback();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [pct, setPct] = useState<number | null>(null);
+
+  async function pick(file: File | undefined) {
+    if (inputRef.current) inputRef.current.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast.error("Elige una imagen (JPG, PNG o WebP)");
+    if (file.size > MAX_COVER_BYTES) return toast.error(`La imagen pesa más de ${formatBytes(MAX_COVER_BYTES)}`);
+    setPct(0);
+    try {
+      const up = await uploadCourseCover(file, courseId, (p) => setPct(Math.min(p, 99)));
+      await send(`/api/dashboard/cursos/${courseId}/portada`, "POST", up, "ok");
+      toast.success("Portada actualizada");
+      router.refresh();
+    } catch (err) {
+      toast.error((err as Error).message || "No se pudo subir la portada");
+    } finally {
+      setPct(null);
+    }
+  }
+
+  async function remove() {
+    const yes = await confirm({ title: "¿Quitar la portada?", confirmLabel: "Quitar", danger: true });
+    if (!yes) return;
+    const r = await fetch(`/api/dashboard/cursos/${courseId}/portada`, { method: "DELETE" });
+    if (!r.ok) return toast.error("No se pudo quitar la portada");
+    toast.success("Portada quitada");
+    router.refresh();
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[14rem_1fr] sm:items-center">
+      <div className="relative aspect-video overflow-hidden rounded-xl border border-border bg-surface-2">
+        {cover ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={fileUrl(cover)} alt="Portada del curso" className="h-full w-full object-cover" />
+        ) : (
+          <div className="grid h-full place-items-center text-white" style={{ background: "var(--grad)" }}>
+            <Icon name="book" className="h-8 w-8" />
+          </div>
+        )}
+        {pct !== null ? (
+          <div className="absolute inset-0 grid place-items-center bg-black/50 text-sm font-semibold text-white">
+            {Math.round(pct)}%
+          </div>
+        ) : null}
+      </div>
+      <div className="grid grid-cols-1 gap-2">
+        <p className="text-xs text-subtle">
+          Imagen horizontal (16:9), por ejemplo 1280×720. Se guarda en cuanto la eliges.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn btn-ghost min-h-10" disabled={pct !== null} onClick={() => inputRef.current?.click()}>
+            <Icon name="upload" className="h-4 w-4" />
+            {cover ? "Cambiar portada" : "Subir portada"}
+          </button>
+          {cover ? (
+            <button type="button" className="btn btn-ghost min-h-10" disabled={pct !== null} onClick={remove}>
+              Quitar
+            </button>
+          ) : null}
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/avif"
+          className="sr-only"
+          onChange={(e) => pick(e.target.files?.[0])}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function CourseForm({ course }: { course?: Course }) {
   const router = useRouter();
   const { toast } = useFeedback();
+  const [kind, setKind] = useState<CourseKind>(course?.kind ?? "privado");
+  const [summary, setSummary] = useState(course?.summary ?? "");
   const [title, setTitle] = useState(course?.title ?? "");
   const [slug, setSlug] = useState(course?.slug ?? "");
   const [description, setDescription] = useState(course?.description ?? "");
@@ -100,7 +195,7 @@ export function CourseForm({ course }: { course?: Course }) {
     setSubmitting(true);
     setError(null);
     try {
-      const body = { title, slug, description, hidden };
+      const body = { title, slug, description, hidden, kind, summary };
       const saved = course
         ? await send<Course>(`/api/dashboard/cursos/${course.id}`, "PATCH", body, "course")
         : await send<Course>("/api/dashboard/cursos", "POST", body, "course");
@@ -124,6 +219,45 @@ export function CourseForm({ course }: { course?: Course }) {
       cancelHref={course ? courseHref(course.id) : "/dashboard/cursos"}
       onSubmit={submit}
     >
+      <fieldset className="sm:col-span-2">
+        <legend className={FIELD_LABEL}>Tipo de curso</legend>
+        <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {KIND_OPTIONS.map((o) => (
+            <label
+              key={o.value}
+              className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
+                kind === o.value ? "border-primary bg-primary-soft" : "border-border hover:bg-surface-2"
+              }`}
+            >
+              <input
+                type="radio"
+                name="kind"
+                value={o.value}
+                checked={kind === o.value}
+                onChange={() => setKind(o.value)}
+                className="mt-1 accent-[var(--primary)]"
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">{o.title}</span>
+                <span className="block text-xs text-subtle">{o.hint}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        {course && course.kind === "privado" && kind === "publico" ? (
+          <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+            Al guardarlo como público aparecerá en el catálogo para cualquier persona.
+          </p>
+        ) : null}
+      </fieldset>
+      {course && kind === "publico" ? (
+        <div className="sm:col-span-2">
+          <span className={FIELD_LABEL}>Portada</span>
+          <div className="mt-1">
+            <CoverPicker courseId={course.id} cover={course.cover_pathname} />
+          </div>
+        </div>
+      ) : null}
       <label className="block sm:col-span-2">
         <span className={FIELD_LABEL}>Título *</span>
         <input
@@ -153,6 +287,21 @@ export function CourseForm({ course }: { course?: Course }) {
             : "Si lo dejas vacío se genera a partir del título."}
         </span>
       </label>
+      {kind === "publico" ? (
+        <label className="block sm:col-span-2">
+          <span className={FIELD_LABEL}>Frase corta</span>
+          <input
+            className="agenda-input mt-1 min-h-11"
+            value={summary}
+            maxLength={200}
+            onChange={(e) => setSummary(e.target.value)}
+            placeholder="Ej. Aprende a usar la IA en tu salón de clases en 2 semanas"
+          />
+          <span className="mt-1 block text-xs text-subtle">
+            Aparece en la tarjeta del catálogo.{!course ? " La portada la subes después de crear el curso." : ""}
+          </span>
+        </label>
+      ) : null}
       <label className="block sm:col-span-2">
         <span className={FIELD_LABEL}>Descripción</span>
         <textarea
@@ -167,7 +316,11 @@ export function CourseForm({ course }: { course?: Course }) {
           checked={hidden}
           onChange={setHidden}
           title="Ocultar curso"
-          hint="Los alumnos no lo ven ni pueden inscribirse mientras esté oculto."
+          hint={
+            kind === "publico"
+              ? "No aparece en el catálogo ni se puede abrir mientras esté oculto. Útil para prepararlo."
+              : "Los alumnos no lo ven ni pueden inscribirse mientras esté oculto."
+          }
         />
       </div>
     </FormShell>
@@ -176,20 +329,25 @@ export function CourseForm({ course }: { course?: Course }) {
 
 export function SessionForm({
   courseId,
+  courseKind = "privado",
   session,
   nextPosition,
 }: {
   courseId: string;
+  courseKind?: CourseKind;
   session?: CourseSession;
   nextPosition: number;
 }) {
+  const isPublic = courseKind === "publico";
   const router = useRouter();
   const { toast } = useFeedback();
   const [position, setPosition] = useState(String(session?.position ?? nextPosition));
   const [title, setTitle] = useState(session?.title ?? "");
   const [description, setDescription] = useState(session?.description ?? "");
   const [content, setContent] = useState(session?.content ?? "");
-  const [acceptsSubmissions, setAcceptsSubmissions] = useState(session?.accepts_submissions ?? true);
+  // En cursos públicos las clases no piden entrega salvo que lo actives.
+  const [acceptsSubmissions, setAcceptsSubmissions] = useState(session?.accepts_submissions ?? !isPublic);
+  const [isPreview, setIsPreview] = useState(session?.is_preview ?? false);
   const [dueAt, setDueAt] = useState(toLocalInput(session?.due_at ?? null));
   const [hidden, setHidden] = useState(session?.hidden ?? false);
   const [submitting, setSubmitting] = useState(false);
@@ -208,12 +366,20 @@ export function SessionForm({
         accepts_submissions: acceptsSubmissions,
         due_at: acceptsSubmissions && dueAt ? new Date(dueAt).toISOString() : null,
         hidden,
+        is_preview: isPublic && isPreview,
       };
       const saved = session
         ? await send<CourseSession>(`/api/dashboard/cursos/sesiones/${session.id}`, "PATCH", body, "session")
         : await send<CourseSession>(`/api/dashboard/cursos/${courseId}/sesiones`, "POST", body, "session");
-      toast.success(session ? "Sesión actualizada" : `Sesión ${saved.position} creada. Sube sus materiales.`);
-      router.push(session ? sessionHref(courseId, saved.id) : `${sessionHref(courseId, saved.id)}/materiales`);
+      const noun = isPublic ? "Clase" : "Sesión";
+      toast.success(
+        session
+          ? `${noun} actualizada`
+          : isPublic
+            ? `Clase ${saved.position} creada. Ahora sube su video.`
+            : `Sesión ${saved.position} creada. Sube sus materiales.`,
+      );
+      router.push(session || isPublic ? sessionHref(courseId, saved.id) : `${sessionHref(courseId, saved.id)}/materiales`);
       router.refresh();
     } catch (err) {
       setError((err as Error).message);
@@ -281,10 +447,18 @@ export function SessionForm({
           title="Recibe entregas"
           hint="Los alumnos pueden subir archivos y un comentario."
         />
+        {isPublic ? (
+          <Toggle
+            checked={isPreview}
+            onChange={setIsPreview}
+            title="Clase de muestra gratis"
+            hint="Cualquiera puede verla sin inscribirse, para conocer el curso."
+          />
+        ) : null}
         <Toggle
           checked={hidden}
           onChange={setHidden}
-          title="Ocultar sesión"
+          title={isPublic ? "Ocultar clase" : "Ocultar sesión"}
           hint="Útil para prepararla antes de publicarla."
         />
       </div>

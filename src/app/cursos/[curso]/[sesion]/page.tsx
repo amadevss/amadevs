@@ -3,16 +3,18 @@ import Link from "next/link";
 import {
   getStudentAttendance,
   getStudentSubmission,
+  getVisibleCourse,
   listMaterials,
   listVisibleSessions,
 } from "@/lib/cursos/queries";
-import { loadStudentSession, peekSessionTitle } from "@/lib/cursos/studentPage";
+import { loadPublicLesson, loadStudentSession, peekSessionTitle } from "@/lib/cursos/studentPage";
 import { ATTENDANCE_LABEL, ATTENDANCE_TONE, formatDateTime } from "@/lib/cursos/shared";
 import { DELIVERY_LABEL, DELIVERY_TONE, deliveryState } from "@/lib/cursos/status";
 import { Badge, Breadcrumbs, ButtonLink } from "@/components/ui/kit";
 import Icon from "@/components/ui/icons";
 import Markdown from "@/components/cursos/Markdown";
 import FileList from "@/components/cursos/FileList";
+import PublicLesson from "@/components/cursos/PublicLesson";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function SesionPage({ params }: Props) {
   const { curso, sesion } = await params;
+
+  // Cursos públicos: clases con video, muestras gratis y avance.
+  const publicCourse = await getVisibleCourse(curso);
+  if (publicCourse?.kind === "publico") {
+    const lesson = await loadPublicLesson(publicCourse, sesion);
+    return (
+      <PublicLesson
+        course={publicCourse}
+        session={lesson.session}
+        studentId={lesson.student?.id ?? null}
+        enrolled={lesson.enrolled}
+        base={lesson.base}
+      />
+    );
+  }
+
   const { course, session, student, base } = await loadStudentSession(curso, sesion);
 
   const [materials, sessions, submission, attendance] = await Promise.all([

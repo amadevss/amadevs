@@ -24,7 +24,7 @@ export default async function NuevaSesionPage({ params }: { params: Promise<{ id
           { label: "Nueva sesión" },
         ]}
       />
-      <SessionForm courseId={course.id} nextPosition={next} />
+      <SessionForm courseId={course.id} courseKind={course.kind} nextPosition={next} />
     </>
   );
 }

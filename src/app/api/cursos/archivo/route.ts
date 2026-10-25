@@ -3,7 +3,7 @@ import { issueSignedToken, presignUrl } from "@vercel/blob";
 import { canStudentSeeFile } from "@/lib/cursos/queries";
 import { hasDashboardSession } from "@/lib/cursos/server";
 import { getCurrentStudent } from "@/lib/cursos/students";
-import { MATERIAL_PREFIX, SUBMISSION_PREFIX } from "@/lib/cursos/shared";
+import { COVER_PREFIX, MATERIAL_PREFIX, SUBMISSION_PREFIX } from "@/lib/cursos/shared";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,13 +15,14 @@ const LINK_TTL_MS = 30 * 60 * 1000; // el enlace firmado dura 30 min
  * firmada temporal (así no pasa por la función y no hay límite de tamaño).
  * - Admin (dashboard): todo.
  * - Alumno: materiales de sus cursos y sus propias entregas.
+ * - Cualquiera: portadas de cursos (se muestran en el catálogo).
  */
 export async function GET(req: NextRequest) {
   const pathname = req.nextUrl.searchParams.get("p") ?? "";
   const download = req.nextUrl.searchParams.get("dl") === "1";
 
-  let allowed = false;
-  if (pathname.startsWith(`${MATERIAL_PREFIX}/`) || pathname.startsWith(`${SUBMISSION_PREFIX}/`)) {
+  let allowed = pathname.startsWith(`${COVER_PREFIX}/`) && !pathname.includes("..");
+  if (!allowed && (pathname.startsWith(`${MATERIAL_PREFIX}/`) || pathname.startsWith(`${SUBMISSION_PREFIX}/`))) {
     if (await hasDashboardSession()) allowed = true;
     else {
       const student = await getCurrentStudent();

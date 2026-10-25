@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVisibleCourse } from "@/lib/cursos/queries";
+import { canSelfEnroll, getVisibleCourse } from "@/lib/cursos/queries";
 import { checkStudentLogin, enroll, startStudentSession } from "@/lib/cursos/students";
 
 export const runtime = "nodejs";
@@ -15,6 +15,6 @@ export async function POST(req: NextRequest) {
 
   await startStudentSession(result.student.id);
   const course = body.courseSlug ? await getVisibleCourse(String(body.courseSlug)) : null;
-  if (course) await enroll(course.id, result.student.id);
+  if (course && canSelfEnroll(course)) await enroll(course.id, result.student.id);
   return NextResponse.json({ ok: true });
 }

@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getVisibleCourse, getVisibleSession } from "./queries";
+import { getVisibleCourse, getVisibleSession, type Course } from "./queries";
 import { coursesBasePath } from "./server";
 import { getCurrentStudent, isEnrolled } from "./students";
 
@@ -25,4 +25,19 @@ export async function peekSessionTitle(curso: string, sesion: string): Promise<s
   if (!course) return null;
   const session = await getVisibleSession(course.id, position);
   return session ? `${session.title} · ${course.title}` : null;
+}
+
+/**
+ * Clase de un curso público: la ven los inscritos y, si es de muestra,
+ * cualquiera. Si no tiene acceso, lo manda a la página del curso.
+ */
+export async function loadPublicLesson(course: Course, sesion: string) {
+  const position = Number(sesion);
+  if (!Number.isInteger(position)) notFound();
+  const session = await getVisibleSession(course.id, position);
+  if (!session) notFound();
+  const [student, base] = await Promise.all([getCurrentStudent(), coursesBasePath()]);
+  const enrolled = student ? await isEnrolled(course.id, student.id) : false;
+  if (!enrolled && !session.is_preview) redirect(`${base}/${course.slug}`);
+  return { session, student, enrolled, base };
 }

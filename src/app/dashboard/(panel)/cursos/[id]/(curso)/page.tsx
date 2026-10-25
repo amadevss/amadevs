@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { courseHref, loadCourse, sessionHref } from "@/lib/dashboard/cursos";
-import { formatDateTime } from "@/lib/cursos/shared";
+import { formatDateTime, formatDuration } from "@/lib/cursos/shared";
 import { Badge, ButtonLink, EmptyState } from "@/components/ui/kit";
 import Icon from "@/components/ui/icons";
 
@@ -19,19 +19,23 @@ export default async function CursoSesionesPage({ params }: Props) {
   const course = await loadCourse((await params).id);
   if (!course) notFound();
   const newHref = `${courseHref(course.id)}/sesiones/nueva`;
+  const isPublic = course.kind === "publico";
+  const noun = isPublic ? "clase" : "sesión";
 
   if (course.sessions.length === 0) {
     return (
       <EmptyState
         icon="layers"
-        title="Este curso aún no tiene sesiones"
+        title={`Este curso aún no tiene ${isPublic ? "clases" : "sesiones"}`}
         action={
           <ButtonLink href={newHref} icon="plus">
-            Crear la primera sesión
+            Crear la primera {noun}
           </ButtonLink>
         }
       >
-        Cada sesión tiene su contenido, materiales, asistencia y, si quieres, entregas.
+        {isPublic
+          ? "Cada clase tiene su video, contenido y materiales. Puedes marcar algunas como muestra gratis."
+          : "Cada sesión tiene su contenido, materiales, asistencia y, si quieres, entregas."}
       </EmptyState>
     );
   }
@@ -41,10 +45,14 @@ export default async function CursoSesionesPage({ params }: Props) {
   return (
     <div className="grid grid-cols-1 gap-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted">Toca una sesión para pasar lista, subir materiales o calificar.</p>
+        <p className="text-sm text-muted">
+          {isPublic
+            ? "Toca una clase para subir su video y materiales."
+            : "Toca una sesión para pasar lista, subir materiales o calificar."}
+        </p>
         <ButtonLink href={newHref} icon="plus" className="shrink-0">
-          <span className="hidden sm:inline">Nueva sesión</span>
-          <span className="sm:hidden">Sesión</span>
+          <span className="hidden sm:inline">Nueva {noun}</span>
+          <span className="capitalize sm:hidden">{noun}</span>
         </ButtonLink>
       </div>
 
@@ -69,13 +77,24 @@ export default async function CursoSesionesPage({ params }: Props) {
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="font-semibold">{s.title}</span>
                     {s.hidden ? <Badge tone="muted">Oculta</Badge> : null}
+                    {isPublic && s.is_preview ? <Badge tone="primary">Muestra gratis</Badge> : null}
+                    {isPublic && !s.video_key ? <Badge tone="warn">Sin video</Badge> : null}
                     {s.ungraded_count > 0 ? <Badge tone="warn">{s.ungraded_count} por calificar</Badge> : null}
                   </span>
                   <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-subtle">
-                    <span className="inline-flex items-center gap-1">
-                      <Icon name="users" className="h-3.5 w-3.5" />
-                      Asistencia {s.attendance_count}/{course.student_count}
-                    </span>
+                    {isPublic ? (
+                      s.video_duration ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Icon name="video" className="h-3.5 w-3.5" />
+                          {formatDuration(s.video_duration)}
+                        </span>
+                      ) : null
+                    ) : (
+                      <span className="inline-flex items-center gap-1">
+                        <Icon name="users" className="h-3.5 w-3.5" />
+                        Asistencia {s.attendance_count}/{course.student_count}
+                      </span>
+                    )}
                     <span className="inline-flex items-center gap-1">
                       <Icon name="file" className="h-3.5 w-3.5" />
                       {s.material_count} {s.material_count === 1 ? "material" : "materiales"}

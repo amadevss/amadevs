@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { DateTime } from "luxon";
-import { attendancePercent, getStudentProfile } from "@/lib/cursos/queries";
+import { attendancePercent, getStudentProfile, listCourseCompletion } from "@/lib/cursos/queries";
 import { coursesBasePath } from "@/lib/cursos/server";
 import { getCurrentStudent } from "@/lib/cursos/students";
 import { formatDateTime } from "@/lib/cursos/shared";
@@ -10,15 +9,27 @@ import { BUSINESS_TIMEZONE } from "@/lib/agenda/config";
 import { overallAttendance, pendingDeliveries } from "@/lib/cursos/studentHome";
 import { Badge, ButtonLink, EmptyState, PageHeader, Section, StatCard } from "@/components/ui/kit";
 import Icon from "@/components/ui/icons";
+import CatalogPage from "@/components/cursos/CatalogPage";
 
-export const metadata: Metadata = { title: "Inicio" };
+export async function generateMetadata(): Promise<Metadata> {
+  // Sin sesión, la portada es el catálogo público (se puede indexar).
+  return (await getCurrentStudent())
+    ? { title: "Inicio" }
+    : { title: "Cursos", robots: { index: true, follow: true } };
+}
 export const dynamic = "force-dynamic";
 
 export default async function InicioPage() {
   const [student, base] = await Promise.all([getCurrentStudent(), coursesBasePath()]);
-  if (!student) redirect(`${base}/entrar`);
+  if (!student) return <CatalogPage base={base} />;
 
-  const courses = await getStudentProfile(student.id);
+  const [courses, completion] = await Promise.all([getStudentProfile(student.id), listCourseCompletion(student.id)]);
+  const progressOf = new Map(completion.map((p) => [p.course_id, p]));
+  // Curso abierto que el alumno dejó a medias, para "Continuar".
+  const resume = completion
+    .filter((p) => p.last_session_position !== null && p.completed < p.total)
+    .map((p) => ({ p, course: courses.find((c) => c.id === p.course_id) }))
+    .find((x) => x.course);
   const now = Date.now();
   const coursesHref = `${base}/mis-cursos`;
 
@@ -109,10 +120,37 @@ export default async function InicioPage() {
         </Link>
       ) : null}
 
+      {resume?.course ? (
+        <Link
+          href={`${base}/${resume.course.slug}/${resume.p.last_session_position}`}
+          className="mt-5 flex items-center gap-4 overflow-hidden rounded-2xl border border-border bg-surface p-4 transition active:scale-[0.99] sm:p-5 sm:hover:shadow-[var(--shadow-md)]"
+        >
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full text-white" style={{ background: "var(--grad)" }}>
+            <Icon name="play" className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs font-semibold uppercase tracking-wide text-primary-ink">Continúa donde te quedaste</span>
+            <span className="mt-0.5 block truncate font-display text-lg font-bold">{resume.course.title}</span>
+            <span className="block text-sm text-muted">
+              Clase {resume.p.last_session_position} · {resume.p.completed} de {resume.p.total} vistas
+            </span>
+          </span>
+          <Icon name="chevronRight" className="h-5 w-5 shrink-0 text-subtle" />
+        </Link>
+      ) : null}
+
       {courses.length === 0 ? (
         <div className="mt-5">
-          <EmptyState icon="book" title="Aún no estás inscrito en ningún curso">
-            Abre el enlace que te compartió tu profesor para inscribirte.
+          <EmptyState
+            icon="book"
+            title="Aún no estás inscrito en ningún curso"
+            action={
+              <ButtonLink href={`${base}/catalogo`} icon="search">
+                Explorar cursos
+              </ButtonLink>
+            }
+          >
+            Explora los cursos abiertos o abre el enlace que te compartió tu profesor.
           </EmptyState>
         </div>
       ) : (
@@ -129,6 +167,7 @@ export default async function InicioPage() {
               {courses.slice(0, 4).map((c) => {
                 const pct = attendancePercent(c.sessions.map((s) => s.attendance));
                 const left = c.sessions.filter((s) => s.accepts_submissions && !s.submitted).length;
+                const lessons = progressOf.get(c.id);
                 return (
                   <li key={c.id}>
                     <Link
@@ -144,8 +183,9 @@ export default async function InicioPage() {
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold">{c.title}</span>
                         <span className="block text-xs text-subtle">
-                          {c.sessions.length} {c.sessions.length === 1 ? "sesión" : "sesiones"} · asistencia{" "}
-                          {pct === null ? "—" : `${pct}%`}
+                          {c.kind === "publico" && lessons
+                            ? `${lessons.completed} de ${lessons.total} clases vistas`
+                            : `${c.sessions.length} ${c.sessions.length === 1 ? "sesión" : "sesiones"} · asistencia ${pct === null ? "—" : `${pct}%`}`}
                         </span>
                       </span>
                       {left > 0 ? <Badge tone="warn">{left}</Badge> : null}

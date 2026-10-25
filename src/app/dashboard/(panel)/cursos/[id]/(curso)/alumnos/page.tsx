@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { loadCourse } from "@/lib/dashboard/cursos";
-import { listCourseStudents } from "@/lib/cursos/queries";
+import { listCourseStudentCompletion, listCourseStudents } from "@/lib/cursos/queries";
 import { CourseStudentsPanel } from "@/components/dashboard/cursos/StudentsPanels";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +16,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CursoAlumnosPage({ params }: Props) {
   const course = await loadCourse((await params).id);
   if (!course) notFound();
-  const students = await listCourseStudents(course.id);
-  return <CourseStudentsPanel courseId={course.id} students={students} />;
+  const isPublic = course.kind === "publico";
+  const [students, completed] = await Promise.all([
+    listCourseStudents(course.id),
+    isPublic ? listCourseStudentCompletion(course.id) : Promise.resolve({}),
+  ]);
+  const lessons = isPublic ? { total: course.sessions.filter((s) => !s.hidden).length, completed } : undefined;
+  return <CourseStudentsPanel courseId={course.id} students={students} lessons={lessons} />;
 }
