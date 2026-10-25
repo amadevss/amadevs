@@ -6,7 +6,7 @@ import { AwsClient } from "aws4fetch";
  * caducan, así los archivos nunca pasan por las funciones de Vercel.
  *
  * Variables de entorno:
- *   MEDIA_S3_ENDPOINT    https://media.bryanoliveros.com
+ *   MEDIA_S3_ENDPOINT    https://s3.bryanoliveros.com
  *   MEDIA_S3_BUCKET      cursos
  *   MEDIA_S3_ACCESS_KEY  / MEDIA_S3_SECRET_KEY
  *   MEDIA_S3_REGION      (opcional, us-east-1)
