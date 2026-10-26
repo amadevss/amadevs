@@ -8,19 +8,29 @@ import { useFeedback } from "@/components/ui/feedback";
 import { Badge, EmptyState, FIELD_LABEL } from "@/components/ui/kit";
 import Icon from "@/components/ui/icons";
 import FileList from "@/components/cursos/FileList";
+import TeacherSubmissionForm from "./TeacherSubmissionForm";
 
 type Filter = "pendientes" | "calificadas" | "todas";
 const FILTER_LABEL: Record<Filter, string> = { pendientes: "Por calificar", calificadas: "Calificadas", todas: "Todas" };
 
 export default function SubmissionsPanel({
+  sessionId,
   submissions,
   missing,
+  pending,
   dueAt,
 }: {
+  sessionId: string;
   submissions: CourseSubmission[];
+  /** Inscritos sin entrega que se muestran como pendientes (solo si la sesión recibe entregas). */
   missing: { id: string; full_name: string }[];
+  /** Inscritos sin entrega a los que el profesor puede registrarles una. */
+  pending: { id: string; full_name: string }[];
   dueAt: string | null;
 }) {
+  const router = useRouter();
+  const [, startRefresh] = useTransition();
+  const [adding, setAdding] = useState(false);
   const ungraded = submissions.filter((s) => !s.grade).length;
   const [filter, setFilter] = useState<Filter>(ungraded > 0 ? "pendientes" : "todas");
   const [showMissing, setShowMissing] = useState(false);
@@ -55,18 +65,46 @@ export default function SubmissionsPanel({
             </button>
           ))}
         </div>
-        {missing.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => setShowMissing((v) => !v)}
-            aria-expanded={showMissing}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-amber-700 transition hover:bg-amber-500/10 dark:text-amber-400"
-          >
-            <Icon name="clock" className="h-4 w-4" />
-            {missing.length} sin entregar
-          </button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {missing.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowMissing((v) => !v)}
+              aria-expanded={showMissing}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-amber-700 transition hover:bg-amber-500/10 dark:text-amber-400"
+            >
+              <Icon name="clock" className="h-4 w-4" />
+              {missing.length} sin entregar
+            </button>
+          ) : null}
+          {!adding ? (
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              disabled={pending.length === 0}
+              title={pending.length === 0 ? "Todos los alumnos inscritos ya tienen entrega" : undefined}
+              className="btn btn-primary min-h-10 gap-1.5 px-3.5 text-sm"
+            >
+              <Icon name="plus" className="h-4 w-4" />
+              Agregar entrega
+            </button>
+          ) : null}
+        </div>
       </div>
+
+      {adding ? (
+        <TeacherSubmissionForm
+          sessionId={sessionId}
+          students={pending}
+          dueAt={dueAt}
+          onCancel={() => setAdding(false)}
+          onDone={() => {
+            setAdding(false);
+            setFilter("todas");
+            startRefresh(() => router.refresh());
+          }}
+        />
+      ) : null}
 
       {showMissing ? (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
@@ -84,9 +122,12 @@ export default function SubmissionsPanel({
       ) : null}
 
       {submissions.length === 0 ? (
-        <EmptyState icon="inbox" title="Nadie ha entregado todavía">
-          Las entregas aparecerán aquí en cuanto los alumnos las envíen.
-        </EmptyState>
+        adding ? null : (
+          <EmptyState icon="inbox" title="Nadie ha entregado todavía">
+            Las entregas aparecerán aquí en cuanto los alumnos las envíen. También puedes registrar una con
+            &quot;Agregar entrega&quot;.
+          </EmptyState>
+        )
       ) : list.length === 0 ? (
         <EmptyState icon="check" title={filter === "pendientes" ? "Todo calificado" : "Sin entregas en este filtro"}>
           {filter === "pendientes" ? "No queda ninguna entrega por calificar." : "Cambia el filtro para ver las demás."}
@@ -94,7 +135,7 @@ export default function SubmissionsPanel({
       ) : (
         <ul className="grid grid-cols-1 gap-4">
           {list.map((s) => (
-            <SubmissionItem key={s.id} sub={s} dueAt={dueAt} />
+            <SubmissionItem key={s.id} sub={s} sessionId={sessionId} dueAt={dueAt} />
           ))}
         </ul>
       )}
@@ -102,13 +143,14 @@ export default function SubmissionsPanel({
   );
 }
 
-function SubmissionItem({ sub, dueAt }: { sub: CourseSubmission; dueAt: string | null }) {
+function SubmissionItem({ sub, sessionId, dueAt }: { sub: CourseSubmission; sessionId: string; dueAt: string | null }) {
   const router = useRouter();
   const { toast, confirm } = useFeedback();
   const [grade, setGrade] = useState(sub.grade ?? "");
   const [feedback, setFeedback] = useState(sub.feedback ?? "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [, startRefresh] = useTransition();
   const dirty = grade !== (sub.grade ?? "") || feedback !== (sub.feedback ?? "");
   const late = dueAt ? new Date(sub.updated_at).getTime() > new Date(dueAt).getTime() : false;
@@ -149,6 +191,24 @@ function SubmissionItem({ sub, dueAt }: { sub: CourseSubmission; dueAt: string |
     startRefresh(() => router.refresh());
   }
 
+  if (editing) {
+    return (
+      <li>
+        <TeacherSubmissionForm
+          sessionId={sessionId}
+          students={[]}
+          submission={sub}
+          dueAt={dueAt}
+          onCancel={() => setEditing(false)}
+          onDone={() => {
+            setEditing(false);
+            startRefresh(() => router.refresh());
+          }}
+        />
+      </li>
+    );
+  }
+
   return (
     <li className={`surface-card grid gap-4 p-4 sm:p-5 ${deleting ? "opacity-50" : ""}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -157,6 +217,7 @@ function SubmissionItem({ sub, dueAt }: { sub: CourseSubmission; dueAt: string |
           {sub.student_email ? <p className="break-all text-xs text-subtle">{sub.student_email}</p> : null}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
+          {sub.added_by_teacher ? <Badge tone="info">Registrada por el profesor</Badge> : null}
           {late ? <Badge tone="bad">Tarde</Badge> : null}
           {sub.grade ? <Badge tone="ok">Calificada: {sub.grade}</Badge> : <Badge tone="warn">Por calificar</Badge>}
         </div>
@@ -191,14 +252,24 @@ function SubmissionItem({ sub, dueAt }: { sub: CourseSubmission; dueAt: string |
           />
         </label>
         <div className="flex flex-col-reverse gap-2 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="button"
-            onClick={remove}
-            disabled={deleting}
-            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-rose-600 transition hover:bg-rose-500/10 dark:text-rose-400"
-          >
-            <Icon name="trash" className="h-4 w-4" /> Eliminar entrega
-          </button>
+          <div className="flex flex-wrap gap-1">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              disabled={deleting || !sub.student_id}
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted transition hover:bg-surface-2 hover:text-fg"
+            >
+              <Icon name="edit" className="h-4 w-4" /> Editar entrega
+            </button>
+            <button
+              type="button"
+              onClick={remove}
+              disabled={deleting}
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-rose-600 transition hover:bg-rose-500/10 dark:text-rose-400"
+            >
+              <Icon name="trash" className="h-4 w-4" /> Eliminar entrega
+            </button>
+          </div>
           <button type="button" className="btn btn-primary min-h-11" onClick={save} disabled={saving || !dirty}>
             {saving ? "Guardando…" : dirty ? "Guardar calificación" : "Guardado"}
           </button>

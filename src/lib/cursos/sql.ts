@@ -5,6 +5,7 @@ import {
   COURSES_SCHEMA_SQL,
   PUBLIC_COURSES_SCHEMA_SQL,
   STUDENTS_SCHEMA_SQL,
+  TEACHER_SUBMISSIONS_SCHEMA_SQL,
 } from "./schema";
 
 let schemaReady: Promise<void> | null = null;
@@ -16,11 +17,17 @@ function ensureSchema(): Promise<void> {
       select to_regclass('public.course_submission_file') as courses,
              to_regclass('public.course_attendance') as students,
              to_regclass('public.course_lesson_progress') as public_courses,
-             to_regclass('public.course_purchase') as payments`;
+             to_regclass('public.course_purchase') as payments,
+             exists (
+               select 1 from information_schema.columns
+               where table_schema = 'public' and table_name = 'course_submission'
+                 and column_name = 'added_by_teacher'
+             ) as teacher_submissions`;
     if (!rows[0]?.courses) await db.query(COURSES_SCHEMA_SQL);
     if (!rows[0]?.students) await db.query(STUDENTS_SCHEMA_SQL);
     if (!rows[0]?.public_courses) await db.query(PUBLIC_COURSES_SCHEMA_SQL);
     if (!rows[0]?.payments) await db.query(COURSE_PAYMENTS_SCHEMA_SQL);
+    if (!rows[0]?.teacher_submissions) await db.query(TEACHER_SUBMISSIONS_SCHEMA_SQL);
   })().catch((err) => {
     schemaReady = null;
     throw err;
