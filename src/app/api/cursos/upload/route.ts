@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import {
   getEnrolledSession,
+  getSessionStudent,
   getStudentSubmission,
   sessionExists,
   submissionBlockedReason,
@@ -25,6 +26,8 @@ export const dynamic = "force-dynamic";
  * Emite tokens para que el navegador suba directo a Vercel Blob (privado).
  * - kind "entrega": alumno con sesión, inscrito, y con la entrega abierta.
  * - kind "material": solo con sesión de dashboard.
+ * - kind "entrega-profesor": el profesor sube archivos a la entrega de un
+ *   alumno inscrito (solo dashboard).
  * - kind "portada": imagen de portada de un curso, solo dashboard.
  * El registro en la base de datos se hace después con otra llamada.
  */
@@ -37,7 +40,12 @@ export async function POST(req: NextRequest) {
       body,
       request: req,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
-        const payload = JSON.parse(clientPayload ?? "{}") as { kind?: string; sessionId?: string; courseId?: string };
+        const payload = JSON.parse(clientPayload ?? "{}") as {
+          kind?: string;
+          sessionId?: string;
+          courseId?: string;
+          studentId?: string;
+        };
         const sessionId = String(payload.sessionId ?? "");
 
         if (payload.kind === "portada") {
@@ -57,6 +65,14 @@ export async function POST(req: NextRequest) {
           if (!(await sessionExists(sessionId))) throw new Error("Sesión no encontrada");
           if (!pathname.startsWith(materialFolder(sessionId))) throw new Error("Ruta inválida");
           return { addRandomSuffix: true, maximumSizeInBytes: MAX_MATERIAL_BYTES };
+        }
+
+        if (payload.kind === "entrega-profesor") {
+          if (!(await hasDashboardSession())) throw new Error("No autorizado");
+          const student = await getSessionStudent(sessionId, String(payload.studentId ?? ""));
+          if (!student) throw new Error("El alumno no está inscrito en este curso");
+          if (!pathname.startsWith(submissionFolder(sessionId, student.id))) throw new Error("Ruta inválida");
+          return { addRandomSuffix: true, maximumSizeInBytes: MAX_SUBMISSION_BYTES };
         }
 
         if (payload.kind === "entrega") {

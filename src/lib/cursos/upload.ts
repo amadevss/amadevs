@@ -8,7 +8,7 @@ export type UploadedFile = { pathname: string; filename: string };
 /** Sube un archivo directo del navegador a Blob (privado). */
 export async function uploadCourseFile(
   file: File,
-  kind: "material" | "entrega",
+  kind: "material" | "entrega" | "entrega-profesor",
   sessionId: string,
   onProgress?: (pct: number) => void,
   studentId = "",
@@ -17,7 +17,7 @@ export async function uploadCourseFile(
   const blob = await upload(`${folder}${safeFilename(file.name)}`, file, {
     access: "private",
     handleUploadUrl: "/api/cursos/upload",
-    clientPayload: JSON.stringify({ kind, sessionId }),
+    clientPayload: JSON.stringify({ kind, sessionId, studentId }),
     contentType: file.type || undefined,
     multipart: file.size > 50 * 1024 * 1024,
     onUploadProgress: onProgress ? (e) => onProgress(e.percentage) : undefined,

@@ -68,6 +68,8 @@ export type CourseSubmission = {
   comment: string;
   grade: string | null;
   feedback: string | null;
+  /** La registró el profesor desde el dashboard a nombre del alumno. */
+  added_by_teacher: boolean;
   created_at: string;
   updated_at: string;
   files: CourseFile[];
@@ -363,6 +365,59 @@ export async function upsertStudentSubmission(
       values (${id}, ${f.pathname}, ${f.filename}, ${f.content_type}, ${f.size})`;
   }
   const keep = new Set(files.map((f) => f.pathname));
+  return { id, oldPathnames: old.map((o) => o.pathname).filter((p) => !keep.has(p)) };
+}
+
+/** Alumno inscrito en el curso de esta sesión (para entregas desde el dashboard). */
+export async function getSessionStudent(
+  sessionId: string,
+  studentId: string,
+): Promise<{ id: string; full_name: string } | null> {
+  if (!isUuid(sessionId) || !isUuid(studentId)) return null;
+  const { rows } = await sql<{ id: string; full_name: string }>`
+    select st.id, st.full_name from course_session s
+    join course_enrollment e on e.course_id = s.course_id and e.student_id = ${studentId}
+    join student st on st.id = e.student_id
+    where s.id = ${sessionId} limit 1`;
+  return rows[0] ?? null;
+}
+
+/**
+ * El profesor crea o edita la entrega de un alumno desde el dashboard:
+ * archivos, comentario, fecha de entrega y, si quiere, calificación.
+ * Si la entrega es nueva queda marcada como registrada por el profesor; si ya
+ * existía (la subió el alumno) conserva su origen. Devuelve los pathnames de
+ * los archivos que se quitaron para borrarlos de Blob.
+ */
+export async function upsertTeacherSubmission(
+  sessionId: string,
+  student: { id: string; full_name: string },
+  input: {
+    comment: string;
+    files: Omit<CourseFile, "id">[];
+    grade: string | null;
+    feedback: string | null;
+    submittedAt: string;
+  },
+): Promise<{ id: string; oldPathnames: string[] }> {
+  const { rows } = await sql<{ id: string }>`
+    insert into course_submission
+      (session_id, student_id, student_name, comment, grade, feedback, added_by_teacher, created_at, updated_at)
+    values (${sessionId}, ${student.id}, ${student.full_name}, ${input.comment}, ${input.grade}, ${input.feedback},
+            true, ${input.submittedAt}, ${input.submittedAt})
+    on conflict (session_id, student_id) where student_id is not null
+    do update set comment = excluded.comment, student_name = excluded.student_name,
+      grade = excluded.grade, feedback = excluded.feedback, updated_at = excluded.updated_at
+    returning id`;
+  const id = rows[0].id;
+  const { rows: old } = await sql<{ pathname: string }>`
+    delete from course_submission_file where submission_id = ${id} returning pathname`;
+  for (const f of input.files) {
+    await sql`
+      insert into course_submission_file (submission_id, pathname, filename, content_type, size)
+      values (${id}, ${f.pathname}, ${f.filename}, ${f.content_type}, ${f.size})`;
+  }
+  const keep = new Set(input.files.map((f) => f.pathname));
   return { id, oldPathnames: old.map((o) => o.pathname).filter((p) => !keep.has(p)) };
 }
 

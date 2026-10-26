@@ -38,9 +38,6 @@ export default async function CursoLayout({
         description={course.description ? <span className="line-clamp-2">{course.description}</span> : null}
         actions={
           <>
-            <ButtonLink href={`${href}/editar`} variant="ghost" icon="edit">
-              Editar
-            </ButtonLink>
             <DeleteButton
               variant="button"
               url={`/api/dashboard/cursos/${course.id}`}
@@ -91,6 +88,7 @@ export default async function CursoLayout({
           { href, label: isPublic ? "Clases" : "Sesiones", count: course.sessions.length, exact: true },
           { href: `${href}/alumnos`, label: "Alumnos", count: course.student_count },
           ...(isPublic ? [{ href: `${href}/venta`, label: "Venta" }] : []),
+          { href: `${href}/editar`, label: "Editar" },
         ]}
       />
       {children}

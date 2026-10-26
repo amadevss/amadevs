@@ -228,3 +228,10 @@ create trigger course_purchase_set_updated_at
   before update on course_purchase
   for each row execute function set_updated_at();
 `;
+
+export const TEACHER_SUBMISSIONS_SCHEMA_SQL = `
+-- Entregas registradas por el profesor desde el dashboard (a nombre de un
+-- alumno). Solo agrega una columna; idempotente.
+alter table course_submission
+  add column if not exists added_by_teacher boolean not null default false;
+`;

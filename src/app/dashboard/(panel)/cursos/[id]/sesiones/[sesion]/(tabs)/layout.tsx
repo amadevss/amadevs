@@ -6,7 +6,7 @@ import { courseHref, loadCourse, loadSession, sessionHref } from "@/lib/dashboar
 import { formatDateTime } from "@/lib/cursos/shared";
 import { Badge, ButtonLink, PageHeader } from "@/components/ui/kit";
 import Icon from "@/components/ui/icons";
-import RouteTabs from "@/components/ui/RouteTabs";
+import RouteTabs, { type RouteTab } from "@/components/ui/RouteTabs";
 import DeleteButton from "@/components/dashboard/DeleteButton";
 
 export default async function SesionLayout({
@@ -29,7 +29,7 @@ export default async function SesionLayout({
   const isPublic = course.kind === "publico";
   const noun = isPublic ? "Clase" : "Sesión";
 
-  const tabs = [
+  const tabs: RouteTab[] = [
     isPublic
       ? { href, label: "Video", count: session.video_key ? 1 : 0, exact: true }
       : { href, label: "Asistencia", count: session.attendance_count, exact: true },
@@ -38,6 +38,7 @@ export default async function SesionLayout({
   if (session.accepts_submissions || session.submission_count > 0) {
     tabs.push({ href: `${href}/entregas`, label: "Entregas", count: session.submission_count });
   }
+  tabs.push({ href: `${href}/editar`, label: "Editar" });
 
   return (
     <>
@@ -76,9 +77,6 @@ export default async function SesionLayout({
         }
         actions={
           <>
-            <ButtonLink href={`${href}/editar`} variant="ghost" icon="edit">
-              Editar
-            </ButtonLink>
             {!session.hidden && !course.hidden ? (
               <ButtonLink href={`/cursos/${course.slug}/${session.position}`} variant="ghost" icon="external" external>
                 Ver

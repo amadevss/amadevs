@@ -20,14 +20,16 @@ export default async function EntregasPage({ params }: Props) {
   if (!session) notFound();
   const [submissions, enrolled] = await Promise.all([listSubmissions(session.id), listSessionAttendance(session.id)]);
   const delivered = new Set(submissions.map((s) => s.student_id));
-  const missing = enrolled
+  const pending = enrolled
     .filter((e) => !delivered.has(e.student_id))
     .map((e) => ({ id: e.student_id, full_name: e.full_name }));
 
   return (
     <SubmissionsPanel
+      sessionId={session.id}
       submissions={submissions}
-      missing={session.accepts_submissions ? missing : []}
+      missing={session.accepts_submissions ? pending : []}
+      pending={pending}
       dueAt={session.due_at}
     />
   );

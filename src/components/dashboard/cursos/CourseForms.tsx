@@ -200,6 +200,12 @@ export function CourseForm({ course }: { course?: Course }) {
         ? await send<Course>(`/api/dashboard/cursos/${course.id}`, "PATCH", body, "course")
         : await send<Course>("/api/dashboard/cursos", "POST", body, "course");
       toast.success(course ? "Curso actualizado" : `Curso "${saved.title}" creado. Ahora agrega sesiones.`);
+      if (course) {
+        // Editar es una pestaña del curso: se queda aquí con los datos nuevos.
+        setSubmitting(false);
+        router.refresh();
+        return;
+      }
       router.push(courseHref(saved.id));
       router.refresh();
     } catch (err) {
@@ -379,7 +385,13 @@ export function SessionForm({
             ? `Clase ${saved.position} creada. Ahora sube su video.`
             : `Sesión ${saved.position} creada. Sube sus materiales.`,
       );
-      router.push(session || isPublic ? sessionHref(courseId, saved.id) : `${sessionHref(courseId, saved.id)}/materiales`);
+      if (session) {
+        // Editar es una pestaña de la sesión: se queda aquí con los datos nuevos.
+        setSubmitting(false);
+        router.refresh();
+        return;
+      }
+      router.push(isPublic ? sessionHref(courseId, saved.id) : `${sessionHref(courseId, saved.id)}/materiales`);
       router.refresh();
     } catch (err) {
       setError((err as Error).message);
